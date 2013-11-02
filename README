@@ -1,0 +1,23 @@
+﻿OpenGLTest
+====================
+Windows における OpenGL の習作です。
+
+Goal
+--------------------
+1. 立方体を表示して自由に視点移動できるようにする
+2. Windows Imaging Component を使って画像を読み込み、  
+ポリゴンに貼り付ける
+3. 文字列をオフスクリーンバッファに描画し、  
+ビルボードとして表示する
+4. テクスチャをアニメーションさせる
+
+Remarks
+--------------------
+これは練習目的で書かれたコードです。
+
+License
+--------------------
+NYSL Version 0.9982  
+http://www.kmonos.net/nysl/
+
+Copyright &copy; 2013 tapetums

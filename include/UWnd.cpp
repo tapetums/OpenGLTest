@@ -1,0 +1,380 @@
+﻿// UWnd.cpp
+
+#define CLASSNAME UWnd
+
+//---------------------------------------------------------------------------//
+
+#include <windows.h>
+
+#include "UWnd.h"
+
+//---------------------------------------------------------------------------//
+
+void __stdcall ShowLastError(LPCTSTR mbx_title)
+{
+    LPTSTR lpMsgBuf = nullptr;
+    ::FormatMessage
+    (
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr,
+        ::GetLastError(),
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPTSTR)&lpMsgBuf,
+        0,
+        nullptr
+    );
+    ::MessageBox(nullptr, lpMsgBuf, mbx_title, MB_OK);
+    ::LocalFree(lpMsgBuf);
+}
+
+//---------------------------------------------------------------------------//
+
+CLASSNAME::CLASSNAME()
+{
+    m_className = TEXT("UWnd");
+    UWnd::Register(m_className);
+}
+
+//---------------------------------------------------------------------------//
+
+CLASSNAME::~CLASSNAME()
+{
+    this->Destroy();
+}
+
+//---------------------------------------------------------------------------//
+
+INT32 __stdcall CLASSNAME::X() const
+{
+    return m_x;
+}
+
+//---------------------------------------------------------------------------//
+
+INT32 __stdcall CLASSNAME::Y() const
+{
+    return m_y;
+}
+
+//---------------------------------------------------------------------------//
+
+INT32 __stdcall CLASSNAME::Width() const
+{
+    return m_w;
+}
+
+//---------------------------------------------------------------------------//
+
+INT32 __stdcall CLASSNAME::Height() const
+{
+    return m_h;
+}
+
+//---------------------------------------------------------------------------//
+
+DWORD __stdcall CLASSNAME::Style() const
+{
+    return (DWORD)::GetWindowLongPtr(m_hwnd, GWL_STYLE);
+}
+
+//---------------------------------------------------------------------------//
+
+DWORD __stdcall CLASSNAME::StyleEx() const
+{
+    return (DWORD)::GetWindowLongPtr(m_hwnd, GWL_EXSTYLE);
+}
+
+//---------------------------------------------------------------------------//
+
+HWND __stdcall CLASSNAME::Handle() const
+{
+    return m_hwnd;
+}
+
+//---------------------------------------------------------------------------//
+
+HWND __stdcall CLASSNAME::Parent() const
+{
+    return (HWND)::GetWindowLongPtr(m_hwnd, GWLP_HWNDPARENT);
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall CLASSNAME::Create
+(
+    LPCTSTR lpWindowName,
+    DWORD   style, 
+    DWORD   styleEx,
+    HWND    hwndParent,
+    HMENU   hMenu
+)
+{
+    // 二重生成防止!
+    if ( m_hwnd )
+    {
+        return S_FALSE;
+    }
+
+    // 親ウィンドウを持つ場合はウィンドウスタイルにWS_CHILDを追加
+    style |= hwndParent ? WS_CHILD : 0;
+
+    // ウィンドウを生成 … UWnd::StaticWndProc() 内で m_hwnd を格納している
+    ::CreateWindowEx
+    (
+        styleEx, m_className, lpWindowName, style,
+        m_x, m_y, m_w, m_h,
+        hwndParent, hMenu, ::GetModuleHandle(nullptr), (LPVOID)this
+    );
+    if ( nullptr == m_hwnd )
+    {
+        // エラーメッセージの表示
+        ShowLastError(m_className);
+        return E_FAIL;
+    }
+
+    //::UpdateWindow(m_hwnd);
+
+    return S_OK;
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall CLASSNAME::Destroy()
+{
+    if ( ::IsWindow(m_hwnd) == FALSE )
+    {
+        m_hwnd = nullptr;
+        return S_FALSE;
+    }
+
+    ::DestroyWindow(m_hwnd);
+    m_hwnd = nullptr;
+
+    return S_OK;
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall CLASSNAME::Bounds(INT32 x, INT32 y, INT32 w, INT32 h)
+{
+    this->AdjustRect(w, h);
+
+    ::SetWindowPos
+    (
+        m_hwnd, nullptr,
+        x, y, w, h,
+        SWP_NOZORDER
+    );
+
+    return S_OK;
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall CLASSNAME::Hide()
+{
+    ::ShowWindow(m_hwnd, SW_HIDE);
+
+    return S_OK;
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall CLASSNAME::Move(INT32 x, INT32 y)
+{
+    ::SetWindowPos
+    (
+        m_hwnd, nullptr,
+        x, y, 0, 0,
+        SWP_NOSIZE | SWP_NOZORDER
+    );
+
+    return S_OK;
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall CLASSNAME::Refresh(BOOL bErase)
+{
+    ::InvalidateRect(m_hwnd, nullptr, bErase);
+
+    return S_OK;
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall CLASSNAME::Resize(INT32 w, INT32 h)
+{
+    this->AdjustRect(w, h);
+
+    ::SetWindowPos
+    (
+        m_hwnd, nullptr,
+        0, 0, w, h,
+        SWP_NOMOVE | SWP_NOZORDER
+    );
+
+    return S_OK;
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall CLASSNAME::Show()
+{
+    ::ShowWindow(m_hwnd, SW_SHOWNORMAL);
+    ::UpdateWindow(m_hwnd);
+
+    return S_OK;
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall CLASSNAME::ToCenter()
+{
+    if ( this->Parent() )
+    {
+        return S_FALSE;
+    }
+
+    POINT pt;
+    ::GetCursorPos(&pt);
+    auto hMonitor = ::MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+    
+    MONITORINFO mi = { };
+    mi.cbSize = sizeof(mi);
+    ::GetMonitorInfo(hMonitor, &mi);
+    
+    auto sx = mi.rcWork.left;
+    auto sy = mi.rcWork.top;
+    auto sw = mi.rcWork.right  - mi.rcWork.left;
+    auto sh = mi.rcWork.bottom - mi.rcWork.top;
+
+    return this->Move((sw - m_w) / 2 + sx, (sh - m_h) / 2 + sy);
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
+{
+    if ( uMsg == WM_CLOSE )
+    {
+        ::PostQuitMessage(0);
+        return 0L;
+    }
+    else
+    {
+        return ::DefWindowProc(hwnd, uMsg, wp, lp);
+    }
+}
+
+//---------------------------------------------------------------------------//
+
+void __stdcall CLASSNAME::Register(LPCTSTR lpszClassName)
+{
+    // ウィンドウクラスを登録
+    WNDCLASSEX wc = { };
+    wc.cbSize        = sizeof(wc);
+    wc.style         = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
+    wc.lpfnWndProc   = UWnd::StaticWndProc;
+    wc.cbClsExtra    = 0;
+    wc.cbWndExtra    = 0;
+    wc.hInstance     = ::GetModuleHandle(nullptr);
+    wc.hIcon         = nullptr;
+    wc.hCursor       = ::LoadCursor(nullptr, IDC_ARROW);
+    wc.hbrBackground = nullptr;
+    wc.lpszMenuName  = nullptr;
+    wc.lpszClassName = lpszClassName;
+    wc.hIconSm       = nullptr;
+
+    auto atom = ::RegisterClassEx(&wc);
+    if ( atom == 0 )
+    {
+        if ( GetLastError() == 0x582 )
+        {
+            // そのクラスは既にあります。
+            return;
+        }
+        else
+        {
+            // エラーメッセージの表示
+            ShowLastError(lpszClassName);
+        }
+    }
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::StaticWndProc
+(
+    HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp
+)
+{
+    UWnd* wnd = nullptr;
+
+    // UWndオブジェクトのポインタを取得
+    if ( uMsg == WM_NCCREATE )
+    {
+        wnd = (UWnd*)((CREATESTRUCT*)lp)->lpCreateParams;
+
+        ::SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)wnd);
+    }
+    else
+    {
+        wnd = (UWnd*)::GetWindowLongPtrW(hwnd, GWLP_USERDATA);
+    }
+
+    // ウィンドウプロシージャの呼び出し
+    if ( nullptr == wnd )
+    {
+        return ::DefWindowProc(hwnd, uMsg, wp, lp);
+    }
+    else
+    {
+        // メンバ変数に情報を保存
+        switch ( uMsg )
+        {
+            case WM_CREATE:
+            {
+                wnd->m_hwnd = hwnd;    // ウィンドウハンドル
+                break;
+            }
+            case WM_MOVE:
+            {
+                wnd->m_x = LOWORD(lp); // ウィンドウx座標
+                wnd->m_y = HIWORD(lp); // ウィンドウy座標
+                break;
+            }
+            case WM_SIZE:
+            {
+                wnd->m_w = LOWORD(lp); // ウィンドウ幅
+                wnd->m_h = HIWORD(lp); // ウィンドウ高
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
+        return wnd->WndProc(hwnd, uMsg, wp, lp);
+    }
+}
+
+//---------------------------------------------------------------------------//
+
+void __stdcall CLASSNAME::AdjustRect(INT32& w, INT32& h) const
+{
+    RECT rc = { 0, 0, w, h };
+    BOOL  hasMenu = ::GetMenu(m_hwnd) ? TRUE : FALSE;
+    DWORD style   = this->Style();
+    DWORD styleEx = this->StyleEx();
+
+    ::AdjustWindowRectEx(&rc, style, hasMenu, styleEx);
+    w = rc.right  - rc.left;
+    h = rc.bottom - rc.top;
+}
+
+//---------------------------------------------------------------------------//
+
+// UWnd.cpp
