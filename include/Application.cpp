@@ -1,29 +1,110 @@
 ﻿// Application.cpp
 
+#define CLASSNAME Application
+
+//---------------------------------------------------------------------------//
+
 #include <windows.h>
 
+#include "DebugPrint.h"
 #include "Application.h"
 
 //---------------------------------------------------------------------------//
 
-Application::Application()
+Application application;
+
+//---------------------------------------------------------------------------//
+
+struct Timer
+{
+    int64_t  frequency;
+    int64_t  start_time;
+    int64_t  next_time;
+    uint16_t fps_numerator;
+    uint16_t fps_denominator;
+    size_t   frame_count;
+
+    Timer()
+    {
+        this->Rest();
+    }
+
+    ~Timer()
+    {
+    }
+
+    void Rest()
+    {
+        ::QueryPerformanceFrequency((LARGE_INTEGER*)&frequency);
+        ::QueryPerformanceCounter((LARGE_INTEGER*)&start_time);
+
+        next_time       = 0;
+        fps_numerator   = 1;
+        fps_denominator = 1000;
+        frame_count     = 0;
+
+        DebugPrintLn(TEXT("PerformanceFrequency: %d"), frequency);
+    }
+
+    void SetFPS(uint16_t numerator = 1, uint16_t denominator = 1000)
+    {
+        fps_numerator   = (numerator > 0) ? numerator : 1;
+        fps_denominator = denominator;
+
+        DebugPrintLn(TEXT("Target FPS: %f"), fps_numerator * 1000.0L / fps_denominator);
+        DebugPrintLn(TEXT("Time Interval: %fms"), 1.0L * fps_denominator / fps_numerator);
+    }
+
+    bool HasTimeCome() const
+    {
+        int64_t present_time;
+        ::QueryPerformanceCounter((LARGE_INTEGER*)&present_time);
+
+        return (present_time >= next_time);
+    }
+
+    void SetNextTime()
+    {
+        DebugPrintLn(TEXT("frame_count: %d"), frame_count);
+
+        int64_t present_time;
+        ::QueryPerformanceCounter((LARGE_INTEGER*)&present_time);
+
+        while ( next_time < present_time )
+        {
+            ++frame_count;
+            next_time = start_time +
+                        (frame_count * frequency * fps_denominator) /
+                        (fps_numerator * 1000);
+        }
+    }
+};
+
+//---------------------------------------------------------------------------//
+
+CLASSNAME::CLASSNAME()
 {
 }
 
 //---------------------------------------------------------------------------//
 
-Application::~Application()
+CLASSNAME::~CLASSNAME()
 {
     this->Exit(0);
 }
 
 //---------------------------------------------------------------------------//
 
-int32_t __stdcall Application::Run()
+int32_t __stdcall CLASSNAME::Run(uint16_t numerator, uint16_t denominator)
 {
     MSG msg = {};
 
-    while ( true )
+    Timer timer;
+    timer.SetFPS(numerator, denominator);
+    timer.SetNextTime();
+
+    m_is_running = true;
+    while ( m_is_running )
     {
         if ( ::PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE) )
         {
@@ -34,10 +115,17 @@ int32_t __stdcall Application::Run()
             ::TranslateMessage(&msg);
             ::DispatchMessage(&msg);
         }
-        else if ( m_is_game_active && m_game_function )
+        else if ( m_is_game_active )
         {
-            m_game_function(m_gf_args);
-            ::Sleep(1);
+            if ( timer.HasTimeCome() )
+            {
+                ExecuteGameFunc(m_args);
+                timer.SetNextTime();
+            }
+            else
+            {
+                ::Sleep(1);
+            }
         }
         else
         {
@@ -53,31 +141,38 @@ int32_t __stdcall Application::Run()
 
 //---------------------------------------------------------------------------//
 
-void __stdcall Application::Exit(int32_t nExitCode)
+void __stdcall CLASSNAME::Exit(int32_t nExitCode)
 {
+    m_is_running = false;
+
     ::PostQuitMessage(nExitCode);
 }
 
 //---------------------------------------------------------------------------//
 
-void __stdcall Application::Pause()
+void __stdcall CLASSNAME::PauseGameFunc()
 {
     m_is_game_active = false;
 }
 
 //---------------------------------------------------------------------------//
 
-void __stdcall Application::Resume()
+void __stdcall CLASSNAME::ResumeGameFunc()
 {
     m_is_game_active = true;
 }
 
 //---------------------------------------------------------------------------//
 
-void __stdcall Application::RegisterGameFunc(GameFunc func, void* args)
+void __stdcall CLASSNAME::SetGameFunc(GameFunc func, void* args)
 {
-    m_game_function = func;
-    m_gf_args       = args;
+    if ( nullptr == func )
+    {
+        return;
+    }
+
+    m_args          = args;
+    ExecuteGameFunc = func;
 
     m_is_game_active = true;
 }

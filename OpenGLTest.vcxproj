@@ -164,8 +164,8 @@
     <ClCompile Include="include\DebugPrint.cpp" />
     <ClCompile Include="include\DWM.cpp" />
     <ClCompile Include="include\GlassWnd.cpp" />
-    <ClCompile Include="include\Theme.cpp" />
     <ClCompile Include="include\UWnd.cpp" />
+    <ClCompile Include="include\UxTheme.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -176,9 +176,16 @@
     <ClInclude Include="include\DebugPrint.h" />
     <ClInclude Include="include\DWM.h" />
     <ClInclude Include="include\GlassWnd.h" />
-    <ClInclude Include="include\Theme.h" />
     <ClInclude Include="include\UWnd.h" />
+    <ClInclude Include="include\UxTheme.h" />
     <ClInclude Include="ITexture.h" />
+    <ClInclude Include="Mesh.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="octocat.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="res.res" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

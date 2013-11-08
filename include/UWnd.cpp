@@ -6,6 +6,7 @@
 
 #include <windows.h>
 
+#include "DebugPrint.h"
 #include "UWnd.h"
 
 //---------------------------------------------------------------------------//
@@ -42,6 +43,13 @@ CLASSNAME::CLASSNAME()
 CLASSNAME::~CLASSNAME()
 {
     this->Destroy();
+}
+
+//---------------------------------------------------------------------------//
+
+bool __stdcall CLASSNAME::IsFullScreen() const
+{
+    return m_fullscreen;
 }
 
 //---------------------------------------------------------------------------//
@@ -165,7 +173,7 @@ HRESULT __stdcall CLASSNAME::Bounds(INT32 x, INT32 y, INT32 w, INT32 h)
     (
         m_hwnd, nullptr,
         x, y, w, h,
-        SWP_NOZORDER
+        SWP_NOZORDER | SWP_FRAMECHANGED
     );
 
     return S_OK;
@@ -188,7 +196,7 @@ HRESULT __stdcall CLASSNAME::Move(INT32 x, INT32 y)
     (
         m_hwnd, nullptr,
         x, y, 0, 0,
-        SWP_NOSIZE | SWP_NOZORDER
+        SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED
     );
 
     return S_OK;
@@ -213,7 +221,7 @@ HRESULT __stdcall CLASSNAME::Resize(INT32 w, INT32 h)
     (
         m_hwnd, nullptr,
         0, 0, w, h,
-        SWP_NOMOVE | SWP_NOZORDER
+        SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED
     );
 
     return S_OK;
@@ -252,6 +260,103 @@ HRESULT __stdcall CLASSNAME::ToCenter()
     auto sh = mi.rcWork.bottom - mi.rcWork.top;
 
     return this->Move((sw - m_w) / 2 + sx, (sh - m_h) / 2 + sy);
+}
+
+//---------------------------------------------------------------------------//
+
+struct MonitorUnderCursor
+{
+    INT32 x, y, witdh, height;
+    WCHAR name[32];
+
+    MonitorUnderCursor()
+    {
+        POINT pt;
+        ::GetCursorPos(&pt);
+        auto hMonitor = ::MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+    
+        MONITORINFOEX miex = { };
+        miex.cbSize = sizeof(miex);
+        ::GetMonitorInfo(hMonitor, &miex);
+        ::CopyMemory(name, miex.szDevice, 32 * sizeof(WCHAR));
+
+        x      = miex.rcMonitor.left;
+        y      = miex.rcMonitor.top;
+        witdh  = miex.rcMonitor.right  - miex.rcMonitor.left;
+        height = miex.rcMonitor.bottom - miex.rcMonitor.top;
+
+        DebugPrintLn(TEXT("%s: (X, Y) = (%d, %d)"), name, x, y);
+        DebugPrintLn(TEXT("%s: (Witdh, Height) = (%d, %d)"), name, witdh, height);
+    }
+};
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall CLASSNAME::ToggleFullScreen(INT32 w, INT32 h)
+{
+    m_fullscreen = !m_fullscreen;
+    DebugPrintLn(TEXT("ToggleFullScreen: %s"), m_fullscreen ? TEXT("true") : TEXT("false"));
+
+    MonitorUnderCursor moniter;
+
+    if ( m_fullscreen )
+    {
+        auto style = this->Style() | WS_POPUP;
+        ::SetWindowLongPtr(m_hwnd, GWL_STYLE, (LONG_PTR)style);
+
+        DEVMODE dm = { };
+        dm.dmSize       = sizeof(dm);
+	    dm.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT;
+	    dm.dmPelsWidth  = moniter.witdh;
+	    dm.dmPelsHeight = moniter.height;
+        auto ret = ::ChangeDisplaySettingsEx
+        (
+            moniter.name, &dm, nullptr, CDS_TEST, 0
+        );
+        if ( ret != DISP_CHANGE_SUCCESSFUL )
+        {
+            m_fullscreen = false;
+            DebugPrintLn(TEXT("ChangeDisplaySettingsEx(CDS_TEST) failed"));
+
+            return E_FAIL;
+        }
+
+        ::ChangeDisplaySettingsEx
+        (
+            moniter.name, &dm, nullptr, CDS_FULLSCREEN, 0
+        );
+
+        ::SetWindowPos
+        (
+            m_hwnd, nullptr,
+            moniter.x, moniter.y, moniter.witdh, moniter.height,
+            SWP_NOZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW
+        );
+
+        return S_OK;
+    }
+    else
+    {
+        ::ChangeDisplaySettingsEx
+        (
+            moniter.name, nullptr, nullptr, 0, 0
+        );
+
+        auto style = this->Style() ^ WS_POPUP;
+        ::SetWindowLongPtr(m_hwnd, GWL_STYLE, (LONG_PTR)style);
+
+        this->AdjustRect(w, h);
+
+        ::SetWindowPos
+        (
+            m_hwnd, nullptr,
+            (moniter.witdh - w) / 2 + moniter.x,
+            (moniter.height - h) / 2 + moniter.y, w, h,
+            SWP_NOZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW
+        );
+
+        return S_FALSE;
+    }
 }
 
 //---------------------------------------------------------------------------//
@@ -328,6 +433,7 @@ LRESULT __stdcall CLASSNAME::StaticWndProc
     // ウィンドウプロシージャの呼び出し
     if ( nullptr == wnd )
     {
+        DebugPrintLn(TEXT("Call DefWindowProc(0x%x)"), uMsg);
         return ::DefWindowProc(hwnd, uMsg, wp, lp);
     }
     else
@@ -338,18 +444,21 @@ LRESULT __stdcall CLASSNAME::StaticWndProc
             case WM_CREATE:
             {
                 wnd->m_hwnd = hwnd;    // ウィンドウハンドル
+                DebugPrintLn(TEXT("Window Handle: 0x%p"), hwnd);
                 break;
             }
             case WM_MOVE:
             {
                 wnd->m_x = LOWORD(lp); // ウィンドウx座標
                 wnd->m_y = HIWORD(lp); // ウィンドウy座標
+                DebugPrintLn(TEXT("(X, Y) = (%d, %d)"), wnd->m_x, wnd->m_y);
                 break;
             }
             case WM_SIZE:
             {
                 wnd->m_w = LOWORD(lp); // ウィンドウ幅
                 wnd->m_h = HIWORD(lp); // ウィンドウ高
+                DebugPrintLn(TEXT("(Width, Height) = (%d, %d)"), wnd->m_w, wnd->m_h);
                 break;
             }
             default:
@@ -365,6 +474,8 @@ LRESULT __stdcall CLASSNAME::StaticWndProc
 
 void __stdcall CLASSNAME::AdjustRect(INT32& w, INT32& h) const
 {
+    DebugPrintLn(TEXT("AdjustRect() begin"));
+
     RECT rc = { 0, 0, w, h };
     BOOL  hasMenu = ::GetMenu(m_hwnd) ? TRUE : FALSE;
     DWORD style   = this->Style();
@@ -373,6 +484,8 @@ void __stdcall CLASSNAME::AdjustRect(INT32& w, INT32& h) const
     ::AdjustWindowRectEx(&rc, style, hasMenu, styleEx);
     w = rc.right  - rc.left;
     h = rc.bottom - rc.top;
+
+    DebugPrintLn(TEXT("AdjustRect() end"));
 }
 
 //---------------------------------------------------------------------------//

@@ -12,14 +12,16 @@ public:
     UWnd();
     virtual ~UWnd();
 
-    INT32 __stdcall X()       const;
-    INT32 __stdcall Y()       const;
-    INT32 __stdcall Width()   const;
-    INT32 __stdcall Height()  const;
-    DWORD __stdcall Style()   const;
-    DWORD __stdcall StyleEx() const;
-    HWND  __stdcall Handle()  const;
-    HWND  __stdcall Parent()  const;
+public:
+    INT32 __stdcall X()            const;
+    INT32 __stdcall Y()            const;
+    INT32 __stdcall Width()        const;
+    INT32 __stdcall Height()       const;
+    DWORD __stdcall Style()        const;
+    DWORD __stdcall StyleEx()      const;
+    HWND  __stdcall Handle()       const;
+    HWND  __stdcall Parent()       const;
+    bool  __stdcall IsFullScreen() const;
 
     virtual HRESULT __stdcall Create
     (
@@ -37,6 +39,7 @@ public:
     virtual HRESULT __stdcall Resize(INT32 w, INT32 h);
     virtual HRESULT __stdcall Show();
     virtual HRESULT __stdcall ToCenter();
+    virtual HRESULT __stdcall ToggleFullScreen(INT32 w = 0, INT32 h = 0);
     virtual LRESULT __stdcall WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp);
 
 protected:
@@ -47,12 +50,13 @@ private:
     void __stdcall AdjustRect(INT32& w, INT32& h) const;
 
 protected:
-    INT32   m_x         = CW_USEDEFAULT;
-    INT32   m_y         = CW_USEDEFAULT;
-    INT32   m_w         = CW_USEDEFAULT;
-    INT32   m_h         = CW_USEDEFAULT;
-    HWND    m_hwnd      = nullptr;
-    LPCTSTR m_className = nullptr;
+    INT32   m_x          = CW_USEDEFAULT;
+    INT32   m_y          = CW_USEDEFAULT;
+    INT32   m_w          = CW_USEDEFAULT;
+    INT32   m_h          = CW_USEDEFAULT;
+    HWND    m_hwnd       = nullptr;
+    LPCTSTR m_className  = nullptr;
+    bool    m_fullscreen = false;
 
 private:
     UWnd(const UWnd&)             = delete;

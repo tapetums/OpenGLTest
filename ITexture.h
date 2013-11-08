@@ -2,16 +2,15 @@
 
 #pragma once
 
-typedef unsigned __int32 uint32_t;
-typedef __int32          int32_t;
-typedef double           float64_t;
+#include <stdint.h>
+typedef double float64_t;
 
 //---------------------------------------------------------------------------//
 
 enum class PixelFormat : uint32_t
 {
     UNKNOWN = (uint32_t)-1,
-    A8 = 0,
+    INDEX8 = 0,
     RGB888,
     BGR888,
     RGBA8888,

@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "ITexture.h"
+#include <stdint.h>
 
-typedef unsigned char uint8_t;
+#include "ITexture.h"
 
 //---------------------------------------------------------------------------//
 

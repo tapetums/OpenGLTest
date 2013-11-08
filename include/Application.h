@@ -2,7 +2,7 @@
 
 #pragma once
 
-typedef __int32 int32_t;
+#include <stdint.h>
 
 //---------------------------------------------------------------------------//
 
@@ -16,16 +16,17 @@ public:
     Application();
     ~Application();
 
-    int32_t __stdcall Run();
+    int32_t __stdcall Run(uint16_t numerator = 1, uint16_t denominator = 1000);
     void    __stdcall Exit(int32_t nExitCode = 0);
-    void    __stdcall Pause();
-    void    __stdcall Resume();
-    void    __stdcall RegisterGameFunc(GameFunc func, void* args);
+    void    __stdcall PauseGameFunc();
+    void    __stdcall ResumeGameFunc();
+    void    __stdcall SetGameFunc(GameFunc func, void* args = nullptr);
 
 private:
-    bool     m_is_game_active = false;
-    GameFunc m_game_function  = nullptr;
-    void*    m_gf_args        = nullptr;
+    bool     m_is_running      = false;
+    bool     m_is_game_active  = false;
+    void*    m_args            = nullptr;
+    GameFunc ExecuteGameFunc   = ([](void*){}); // __stdcall
 
 private:
     Application(const Application&)             = delete;
@@ -33,6 +34,10 @@ private:
     Application& operator= (const Application&) = delete;
     Application& operator= (Application&&)      = delete;
 };
+
+//---------------------------------------------------------------------------//
+
+extern Application application;
 
 //---------------------------------------------------------------------------//
 

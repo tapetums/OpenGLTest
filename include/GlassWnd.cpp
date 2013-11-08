@@ -1,15 +1,14 @@
 ﻿// GlassWnd.cpp
 
 #define CLASSNAME GlassWnd
+#define BASENAME  UWnd
 
 //---------------------------------------------------------------------------//
 
 #include <windows.h>
-#include <uxtheme.h>
-#include <dwmapi.h>
 
 #include "DWM.h"
-#include "Theme.h"
+#include "UxTheme.h"
 
 #include "GlassWnd.h"
 
@@ -17,12 +16,12 @@
 
 CLASSNAME::CLASSNAME()
 {
-    dwm = new DWM;
+    dwm     = new DWM;
+    uxtheme = new UxTheme;
 
     m_hBr = ::GetSysColorBrush(COLOR_BTNFACE);
 
-    auto uxtheme = UxTheme::GetInstance();
-    if ( uxtheme )
+    if ( uxtheme->IsAvailable() )
     {
         uxtheme->BufferedPaintInit();
     }
@@ -38,8 +37,7 @@ CLASSNAME::~CLASSNAME()
         m_hBr = nullptr;
     }
 
-    auto uxtheme = UxTheme::GetInstance();
-    if ( uxtheme )
+    if ( uxtheme->IsAvailable() )
     {
         if ( m_hTheme )
         {
@@ -48,6 +46,9 @@ CLASSNAME::~CLASSNAME()
         }
         uxtheme->BufferedPaintUnInit();
     }
+
+    delete uxtheme;
+    uxtheme = nullptr;
 
     delete dwm;
     dwm = nullptr;
@@ -69,7 +70,7 @@ LRESULT __stdcall CLASSNAME::WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
         }
         default:
         {
-            return UWnd::WndProc(hwnd, uMsg, wp, lp);
+            return BASENAME::WndProc(hwnd, uMsg, wp, lp);
         }
     }
 }
@@ -78,7 +79,7 @@ LRESULT __stdcall CLASSNAME::WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
 
 LRESULT __stdcall CLASSNAME::OnDwmCompositionChanged(HWND hwnd)
 {
-    if ( nullptr == dwm->DwmIsCompositionEnabled )
+    if ( !dwm->IsAvailable() )
     {
         return -1L;
     }
@@ -117,8 +118,7 @@ LRESULT __stdcall CLASSNAME::OnDwmCompositionChanged(HWND hwnd)
 
 LRESULT __stdcall CLASSNAME::OnThemeChanged(HWND hwnd)
 {
-    auto uxtheme = UxTheme::GetInstance();
-    if ( uxtheme )
+    if ( uxtheme->IsAvailable() )
     {
         if ( m_hTheme )
         {

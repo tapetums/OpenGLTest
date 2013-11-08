@@ -68,17 +68,19 @@ void CLASSNAME::Init
 {
     m_desc     = *desc;
     m_buf_size = buf_size;
-    m_buffer   = new uint8_t[buf_size];
+    m_buffer   = new uint8_t[buf_size / sizeof(uint8_t)];
     ::CopyMemory(m_buffer, buffer, buf_size);
 
+    int32_t internal_format = GL_RGBA;
     int32_t format = 0;
     int32_t type   = 0;
     GLint   param  = 0;
     switch( m_desc.format )
     {
-        case PixelFormat::A8:
+        case PixelFormat::INDEX8:
         {
-            format = GL_ALPHA;
+            internal_format = GL_RED;
+            format = GL_COLOR_INDEX;
             type   = GL_UNSIGNED_BYTE;
             param  = 1;
             break;
@@ -136,7 +138,7 @@ void CLASSNAME::Init
     ::glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
     ::glTexImage2D
     (
-        GL_TEXTURE_2D, 0, GL_RGBA,
+        GL_TEXTURE_2D, 0, internal_format,
         m_desc.width, m_desc.height, 0,
         format, type, m_buffer
     );

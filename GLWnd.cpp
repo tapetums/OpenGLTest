@@ -1,10 +1,12 @@
 ﻿// GLWnd.cpp
 
 #define CLASSNAME GLWnd
+#define BASENAME  GlassWnd
 
 //---------------------------------------------------------------------------//
 
 #include <windows.h>
+#include <windowsx.h>
 
 #include <wincodec.h>
 #include <wincodecsdk.h>
@@ -19,18 +21,6 @@
 
 #include "GLTexture.h"
 #include "GLWnd.h"
-
-//---------------------------------------------------------------------------//
-
-HRESULT MakeTexture(ITexture** pTexture);
-HRESULT LoadTexture(LPCWSTR fileName, ITexture** pTexture);
-
-static size_t tex_index = 0;
-static const wchar_t* texture_file[] =
-{
-    L"octocat.bmp",
-    L"takoyaki.bmp",
-};
 
 //---------------------------------------------------------------------------//
 
@@ -56,8 +46,181 @@ static const PIXELFORMATDESCRIPTOR pfd =
 
 //---------------------------------------------------------------------------//
 
+ITexture* MakeTexture()
+{
+    static const TextureDesc desc =
+    {
+        PixelFormat::RGBA8888, 4, 4, 0, 0,
+        GL_NEAREST, GL_NEAREST, GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT,
+        GL_REPLACE
+    };
+
+    static const uint8_t buffer[] =
+    {
+        255, 255, 255, 255,    0,   0,   0, 255,
+        255, 255, 255, 255,    0,   0,   0, 255,
+        255,   0,   0, 255,    0, 255,   0, 255,
+          0,   0, 255, 255,  255, 255, 255, 255,
+        128,   0,   0, 255,    0, 128,   0, 255,
+          0,   0, 128, 255,  128, 128, 128, 255,
+        255, 255,   0, 255,  255,   0, 255, 255,
+          0, 255, 255, 255,  255, 255, 255, 255,
+    };
+
+    static const size_t buf_size = sizeof(uint8_t) * sizeof(buffer);
+
+    return new GLTexture(&desc, buf_size, buffer);
+}
+
+//---------------------------------------------------------------------------//
+
+ITexture* LoadTexture(LPCWSTR fileName)
+{
+    HRESULT hr;
+
+    ComPtr<IWICImagingFactory> factory;
+    hr = ::CoCreateInstance
+    (
+        CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+        IID_IWICImagingFactory, (void**)&factory
+    );
+    if ( nullptr == factory.GetInterface() )
+    {
+        DebugPrintLn(TEXT("CoCreateInstance() failed: 0x%08x"), hr);
+        return nullptr;
+    }
+
+    ComPtr<IWICBitmapDecoder> decoder;
+    hr = factory->CreateDecoderFromFilename
+    (
+        fileName, nullptr, GENERIC_READ,
+        WICDecodeMetadataCacheOnLoad, &decoder
+    );
+    if ( nullptr == decoder.GetInterface() )
+    {
+        DebugPrintLn(TEXT("CreateDecoderFromFilename() failed: 0x%08x"), hr);
+        return nullptr;
+    }
+
+    uint32_t frameCount = 0;
+    hr = decoder->GetFrameCount(&frameCount);
+    DebugPrintLn(TEXT("frameCount: %d"), frameCount);
+    if ( 0 == frameCount )
+    {
+        DebugPrintLn(TEXT("GetFrameCount() failed: 0x%08x"), hr);
+        return nullptr;
+    }
+
+    ComPtr<IWICBitmapFrameDecode> frame;
+    hr = decoder->GetFrame(0, &frame);
+    if ( nullptr == frame.GetInterface() )
+    {
+        DebugPrintLn(TEXT("GetFrame() failed: 0x%08x"), hr);
+        return nullptr;
+    }
+
+    TextureDesc desc =
+    {
+        PixelFormat::UNKNOWN, 0, 0, 0, 0,
+        GL_LINEAR, GL_LINEAR, GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT,
+        GL_DECAL
+    };
+    frame->GetSize((UINT*)&desc.width, (UINT*)&desc.height);
+    DebugPrintLn(TEXT("width: %d, height: %d"), desc.width, desc.height);
+
+    frame->GetResolution(&desc.dpiX, &desc.dpiY);
+    DebugPrintLn(TEXT("DPI(X, Y) = (%d, %d)"), desc.dpiX, desc.dpiY);
+
+    GUID format_id = GUID_NULL;
+    uint32_t bitCount = 0;
+    hr = frame->GetPixelFormat(&format_id);
+    DebugPrintLn
+    (
+        TEXT("GetPixelFormat(): 0x%08x, 0x%04x, 0x%04x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x"),
+        format_id.Data1, format_id.Data2, format_id.Data3,
+        format_id.Data4[0], format_id.Data4[1], format_id.Data4[2], format_id.Data4[3],
+        format_id.Data4[4], format_id.Data4[5], format_id.Data4[6], format_id.Data4[7]
+    );
+    if ( IsEqualGUID(format_id, GUID_WICPixelFormat8bppIndexed) )
+    {
+        bitCount = 8;
+        desc.format = PixelFormat::INDEX8;
+    }
+    else if ( IsEqualGUID(format_id, GUID_WICPixelFormat24bppRGB) )
+    {
+        bitCount = 24;
+        desc.format = PixelFormat::RGB888;
+    }
+    else if ( IsEqualGUID(format_id, GUID_WICPixelFormat24bppBGR) )
+    {
+        bitCount = 24;
+        desc.format = PixelFormat::BGR888;
+    }
+    else if ( IsEqualGUID(format_id, GUID_WICPixelFormat32bppRGBA) ||
+              IsEqualGUID(format_id, GUID_WICPixelFormat32bppRGB) )
+    {
+        bitCount = 32;
+        desc.format = PixelFormat::RGBA8888;
+    }
+    else if ( IsEqualGUID(format_id, GUID_WICPixelFormat32bppBGRA) ||
+              IsEqualGUID(format_id, GUID_WICPixelFormat32bppBGR) )
+    {
+        bitCount = 32;
+        desc.format = PixelFormat::BGRA8888;
+    }
+    else
+    {
+        DebugPrintLn(TEXT("GetPixelFormat() failed: E_FAIL"));
+        return nullptr;
+    }
+    DebugPrintLn(TEXT("bitCount: %d"), bitCount);
+    DebugPrintLn(TEXT("PixelFormat: %d"), desc.format);
+
+    auto stride = (desc.width * (bitCount / 8) + 3) & ~3;
+    DebugPrintLn(TEXT("stride: %d"), stride);
+
+    size_t length = stride * desc.height;
+    size_t buf_size = sizeof(uint8_t) * length;
+    auto buffer = new uint8_t[length];
+    hr = frame->CopyPixels(0, stride, static_cast<UINT>(buf_size), buffer);
+
+    auto texture = new GLTexture(&desc, buf_size, buffer);
+    delete[] buffer;
+    buffer = nullptr;
+
+    return texture;
+}
+
+//---------------------------------------------------------------------------//
+
+void DrawGroundLines()
+{
+    float64_t ground_max_x = 300.0;
+    float64_t ground_max_y = 300.0;
+
+    ::glColor3d(0.8, 0.8, 0.8);  // 大地の色
+    ::glBegin(GL_LINES);
+
+    for ( double ly = -ground_max_y; ly <= ground_max_y; ly += 10.0 )
+    {
+        ::glVertex3d(-ground_max_x, ly, 0.0);
+        ::glVertex3d( ground_max_x, ly, 0.0);
+    }
+    for ( double lx = -ground_max_x; lx <= ground_max_x; lx += 10.0 )
+    {
+        ::glVertex3d(lx,  ground_max_y, 0.0);
+        ::glVertex3d(lx, -ground_max_y, 0.0);
+    }
+
+    ::glEnd();
+}
+
+//---------------------------------------------------------------------------//
+
 struct CLASSNAME::Impl
 {
+    INT32 last_x, last_y;
+
     void CreateContext(CLASSNAME* glwnd)
     {
         if ( glwnd->m_dc )
@@ -111,6 +274,21 @@ LRESULT __stdcall CLASSNAME::WndProc
     HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp
 )
 {
+    //DebugPrintLn(TEXT("uMsg: 0x%04X"), uMsg);
+
+    UINT16 fwKeys;
+    INT16  zDelta;
+    INT32  x;
+    INT32  y;
+
+    if ( WM_MOUSEMOVE <= uMsg && uMsg <= WM_MOUSEHWHEEL )
+    {
+        fwKeys = GET_KEYSTATE_WPARAM(wp);
+        zDelta = GET_WHEEL_DELTA_WPARAM(wp);
+        x = GET_X_LPARAM(lp);
+        y = GET_Y_LPARAM(lp);
+    }
+
     switch ( uMsg )
     {
         case WM_CREATE:
@@ -123,32 +301,83 @@ LRESULT __stdcall CLASSNAME::WndProc
         }
         case WM_SIZE:
         {
-            auto fwSizeType = (INT32)wp;
-            auto w = (INT16)(lp & 0xFFFF);
-            auto h = (INT16)((lp  >> 16) & 0xFFFF);
+            auto fwSizeType = LOWORD(wp);
+            auto w = (UINT16)(lp & 0xFFFF);
+            auto h = (UINT16)((lp  >> 16) & 0xFFFF);
             return this->OnSize(fwSizeType, w, h);
-        }
-        case WM_LBUTTONDOWN:
-        {
-            auto fwKeys = (INT32)wp;
-            auto x = (INT16)(lp & 0xFFFF);
-            auto y = (INT16)((lp  >> 16) & 0xFFFF);
-            return this->OnLButtonDown(fwKeys, x, y);
-        }
-        case WM_RBUTTONDOWN:
-        {
-            auto fwKeys = (INT32)wp;
-            auto x = (INT16)(lp & 0xFFFF);
-            auto y = (INT16)((lp  >> 16) & 0xFFFF);
-            return this->OnRButtonDown(fwKeys, x, y);
         }
         case WM_ERASEBKGND:
         {
             return 1L;
         }
+        case WM_NCCALCSIZE:
+        {
+            if ( wp == TRUE )
+            {
+                return this->OnNcCalcSize((NCCALCSIZE_PARAMS*)lp);
+            }
+            else
+            {
+                return BASENAME::WndProc(hwnd, uMsg, wp, lp);
+            }
+        }
+        case WM_NCHITTEST:
+        {
+            POINT pt;
+            ::GetCursorPos(&pt);
+            return this->OnNcHitTest(pt.x, pt.y);
+        }
+        case WM_MOUSEMOVE:
+        {
+            return this->OnMouseMove(fwKeys, x, y);
+        }
+        case WM_KEYDOWN:
+        {
+            return this->OnKeyDown((UINT16)wp, lp);
+        }
+        case WM_LBUTTONDOWN:
+        {
+            return this->OnLButtonDown(fwKeys, x, y);
+        }
+        case WM_LBUTTONUP:
+        {
+            return this->OnLButtonUp(fwKeys, x, y);
+        }
+        case WM_LBUTTONDBLCLK:
+        {
+            return this->OnLButtonDblClk(fwKeys, x, y);
+        }
+        case WM_RBUTTONDOWN:
+        {
+            return this->OnRButtonDown(fwKeys, x, y);
+        }
+        case WM_RBUTTONUP:
+        {
+            return this->OnRButtonUp(fwKeys, x, y);
+        }
+        case WM_MBUTTONDOWN:
+        {
+            return this->OnMButtonDown(fwKeys, x, y);
+        }
+        case WM_MBUTTONUP:
+        {
+            return this->OnMButtonUp(fwKeys, x, y);
+        }
+        case WM_MOUSEWHEEL:
+        {
+            return this->OnMouseWheel(fwKeys, zDelta, x, y);
+        }
+        case WM_MOUSEHWHEEL:
+        {
+            return this->OnMouseHWheel(fwKeys, zDelta, x, y);
+        }
+        case WM_DROPFILES:
+        {
+            return this->OnDropFiles((HDROP)wp);
+        }
         default:
         {
-            return GlassWnd::WndProc(hwnd, uMsg, wp, lp);
+            return BASENAME::WndProc(hwnd, uMsg, wp, lp);
         }
     }
 }
@@ -157,6 +386,12 @@ LRESULT __stdcall CLASSNAME::WndProc
 
 void __stdcall CLASSNAME::Update()
 {
+    auto h_caption = ::GetSystemMetrics(SM_CYCAPTION);
+    auto left   = -1.0f;
+    auto right  =  1.0f;
+    auto top    =  1.0f;
+    auto bottom = -1.0f;
+
     ::glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     ::glClear(GL_COLOR_BUFFER_BIT);
 
@@ -171,29 +406,32 @@ void __stdcall CLASSNAME::Update()
     else
     {
         DebugPrintLn(TEXT("Missing Texture"));
+        m_tex = MakeTexture();
     }
 
     ::glBegin(GL_TRIANGLE_STRIP);
     {
-        ::glColor4f(0.0f, 0.5f, 1.0f, 0.0f);
+        ::glColor4f(0.0f, 0.5f, 1.0f, 0.5f);
 
         ::glTexCoord2f(0.0f, 1.0f);
-        ::glVertex4f(-1.0f, -1.0f, 0.0f, 1.0f);
+        ::glVertex4f( left, bottom, 0.0f, 1.0f);
 
         ::glTexCoord2f(0.0f, 0.0f);
-        ::glVertex4f(-1.0f,  1.0f, 0.0f, 1.0f);
+        ::glVertex4f( left,    top, 0.0f, 1.0f);
 
         ::glTexCoord2f(1.0f, 1.0f);
-        ::glVertex4f( 1.0f, -1.0f, 0.0f, 1.0f);
+        ::glVertex4f(right, bottom, 0.0f, 1.0f);
 
         ::glTexCoord2f(1.0f, 0.0f);
-        ::glVertex4f( 1.0f,  1.0f, 0.0f, 1.0f);
+        ::glVertex4f(right,    top, 0.0f, 1.0f);
     }
     ::glEnd();
 
     ::glDisable(GL_TEXTURE_2D);
     ::glDisable(GL_ALPHA_TEST);
  
+    //DrawGroundLines();
+
     ::glFlush();
     ::SwapBuffers(m_dc);
 }
@@ -202,15 +440,31 @@ void __stdcall CLASSNAME::Update()
 
 LRESULT __stdcall CLASSNAME::OnCreate(WPARAM wp, LPARAM lp)
 {
-    this->OnDwmCompositionChanged(m_hwnd);
+    // AeroGlass化
+    ::SendMessage(m_hwnd, WM_THEMECHANGED, 0, 0);
 
+    // ウィンドウアイコンを登録
+    HICON icon = nullptr;
+    icon = (HICON)::LoadImage
+    (
+        ::GetModuleHandle(nullptr), MAKEINTRESOURCE(1000), IMAGE_ICON,
+        0, 0, LR_DEFAULTSIZE | LR_SHARED
+    );
+   ::SendMessage(m_hwnd, WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM)icon);
+
+    icon = (HICON)::LoadImage
+    (
+        ::GetModuleHandle(nullptr), MAKEINTRESOURCE(1000), IMAGE_ICON,
+        256, 256, LR_DEFAULTSIZE | LR_SHARED
+    );
+    ::SendMessage(m_hwnd, WM_SETICON, (WPARAM)ICON_BIG, (LPARAM)icon);
+
+    // D&D を受け付ける
+    ::DragAcceptFiles(m_hwnd,TRUE);
+
+    // テクスチャの読み込み
     pimpl->CreateContext(this);
-
-    LoadTexture(texture_file[tex_index], &m_tex);
-    if ( nullptr == m_tex )
-    {
-        MakeTexture(&m_tex);
-    }
+    m_tex = MakeTexture();
 
     return 0L;
 }
@@ -232,9 +486,37 @@ LRESULT __stdcall CLASSNAME::OnDestroy(WPARAM wp, LPARAM lp)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnSize(INT32 fwSizeType, INT16 w, INT16 h)
+LRESULT __stdcall CLASSNAME::OnSize(UINT16 fwSizeType, UINT16 w, UINT16 h)
 {
-    ::glViewport(0, 0, w, h);
+    if ( !m_fullscreen )
+    {
+        auto h_caption = ::GetSystemMetrics(SM_CYCAPTION);
+        h -= h_caption;
+    }
+
+    auto x  = 0;
+    auto y  = 0;
+    auto sw = w;
+    auto sh = h;
+    auto iw = m_tex->Desc()->width;
+    auto ih = m_tex->Desc()->height;
+    //DebugPrintLn(TEXT("(iw, ih) = (%d, %d)"), iw, ih);
+
+    if ( w * ih < h * iw )
+    {
+        // 縦余りのとき
+        sh = ih * w / iw;
+        y = (h - sh) / 2;
+    }
+    else
+    {
+        // 横余りのとき
+        sw = iw * h / ih;
+        x = (w - sw) / 2;
+    }
+    //DebugPrintLn(TEXT("(sw, sh) = (%d, %d)"), sw, sh);
+
+    ::glViewport(x, y, (GLsizei)sw, (GLsizei)sh);
 
     this->Update();
 
@@ -243,200 +525,240 @@ LRESULT __stdcall CLASSNAME::OnSize(INT32 fwSizeType, INT16 w, INT16 h)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnLButtonDown(INT32 fwKeys, INT16 x, INT16 y)
+LRESULT __stdcall CLASSNAME::OnNcCalcSize(NCCALCSIZE_PARAMS* pncsp)
 {
-    /*POINT pt;
-    GetCursorPos(&pt);
-    auto lp = MAKELPARAM(pt.x, pt.y);*/
-    ::SendMessage(m_hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);//lp);
+    if ( m_fullscreen )
+    {
+        return 0L;
+    }
+
+    auto cx = ::GetSystemMetrics(SM_CXSIZEFRAME);
+    auto cy = ::GetSystemMetrics(SM_CYSIZEFRAME);
+
+    pncsp->rgrc[0].left   = pncsp->rgrc[0].left   + cx;
+    pncsp->rgrc[0].right  = pncsp->rgrc[0].right  - cx;
+    pncsp->rgrc[0].top    = pncsp->rgrc[0].top    + 0;
+    pncsp->rgrc[0].bottom = pncsp->rgrc[0].bottom - cy;
 
     return 0L;
 }
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnRButtonDown(INT32 fwKeys, INT16 x, INT16 y)
+LRESULT __stdcall CLASSNAME::OnMouseMove(UINT16 fwKeys, INT32 x, INT32 y)
 {
-    DebugPrintLn(TEXT("tex_index: %d"), tex_index);
+    if ( fwKeys & MK_LBUTTON )
+    {
+        DebugPrintLn(TEXT("L dragging: (X, Y) = (%02d, %02d)"), x, y);
+    }
+    if ( fwKeys & MK_RBUTTON )
+    {
+        DebugPrintLn(TEXT("R dragging: (X, Y) = (%02d, %02d)"), x, y);
+    }
+    if ( fwKeys & MK_MBUTTON )
+    {
+        DebugPrintLn(TEXT("M dragging: (X, Y) = (%02d, %02d)"), x, y);
+    }
+
+    return 0L;
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::OnNcHitTest(INT32 x, INT32 y)
+{
+    auto cx = ::GetSystemMetrics(SM_CXSIZEFRAME);
+    auto cy = ::GetSystemMetrics(SM_CYSIZEFRAME);
+
+    if ( x >= m_x + cx && x < m_x + m_w - cx && y <= m_y + cy )
+    {
+        return HTTOP;
+    }
+    else
+    {
+        return BASENAME::WndProc(m_hwnd, WM_NCHITTEST, 0, MAKELPARAM(x, y));
+    }
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::OnKeyDown(UINT16 nVirtKey, LPARAM lp)
+{
+    auto cx = ::GetSystemMetrics(SM_CXSIZEFRAME);
+    auto cy = ::GetSystemMetrics(SM_CYSIZEFRAME);
+
+    switch ( nVirtKey )
+    {
+        case 'C':
+        {
+            this->ToCenter();
+            break;
+        }
+        case 'R':
+        {
+            if ( (::GetKeyState(VK_CONTROL) & 0x80) )
+            {
+                this->Update();
+            }
+            break;
+        }
+        case 'W':
+        {
+            if ( (::GetKeyState(VK_CONTROL) & 0x80) )
+            {
+                ::PostMessage(m_hwnd, WM_CLOSE, 0, 0);
+            }
+            break;
+        }
+        case VK_RETURN:
+        case VK_F11:
+        {
+            this->ToggleFullScreen(256, 256);
+            break;
+        }
+        case VK_LEFT:
+        {
+            this->Move(m_x - cx - 1, m_y);
+            break;
+        }
+        case VK_UP:
+        {
+            this->Move(m_x - cx, m_y - 1);
+            break;
+        }
+        case VK_RIGHT:
+        {
+            this->Move(m_x - cx + 1, m_y);
+            break;
+        }
+        case VK_DOWN:
+        {
+            this->Move(m_x - cx, m_y + 1);
+            break;
+        }
+        case VK_F5:
+        {
+            this->Update();
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+
+    return 0L;
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::OnLButtonDown(UINT16 fwKeys, INT32 x, INT32 y)
+{
+    if ( m_fullscreen )
+    {
+        return 0L;
+    }
+
+    auto h_caption = ::GetSystemMetrics(SM_CYCAPTION);
+    if ( y <= h_caption )
+    {
+        ::SendMessage(m_hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+    }
+
+    return 0L;
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::OnLButtonDblClk(UINT16 fwKeys, INT32 x, INT32 y)
+{
+    auto h_caption = ::GetSystemMetrics(SM_CYCAPTION);
+    if ( y <= h_caption )
+    {
+        ::SendMessage(m_hwnd, WM_NCLBUTTONDBLCLK, HTCAPTION, 0);
+
+    }
+    else
+    {
+        this->ToggleFullScreen(256, 256);
+    }
+
+    return 0L;
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::OnLButtonUp(UINT16 fwKeys, INT32 x, INT32 y)
+{
+    return 0L;
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::OnRButtonDown(UINT16 fwKeys, INT32 x, INT32 y)
+{
+    return 0L;
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::OnRButtonUp(UINT16 fwKeys, INT32 x, INT32 y)
+{
+    return 0L;
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::OnMButtonDown(UINT16 fwKeys, INT32 x, INT32 y)
+{
+    return 0L;
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::OnMButtonUp(UINT16 fwKeys, INT32 x, INT32 y)
+{
+    return 0L;
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::OnMouseWheel(UINT16 fwKeys, INT16 zDelta, INT32 x, INT32 y)
+{
+    DebugPrintLn(TEXT("V scroll: delta = %04d"), zDelta);
+    return 0L;
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::OnMouseHWheel(UINT16 fwKeys, INT16 zDelta, INT32 x, INT32 y)
+{
+    DebugPrintLn(TEXT("H scroll: delta = %04d"), zDelta);
+    return 0L;
+}
+
+//---------------------------------------------------------------------------//
+
+LRESULT __stdcall CLASSNAME::OnDropFiles(HDROP hDrop)
+{
+    WCHAR fileName[MAX_PATH + 1];
+    ::DragQueryFile(hDrop, 0, fileName, MAX_PATH);
+    DebugPrintLn(TEXT("Dropped! %s"), fileName);
+
     if ( m_tex )
     {
         delete m_tex;
         m_tex = nullptr;
     }
 
-    //tex_index = ++tex_index;
-    DebugPrintLn(TEXT("tex_index: %d"), tex_index);
-    tex_index = tex_index ^ 1;
-    DebugPrintLn(TEXT("tex_index: %d"), tex_index);
-
-    LoadTexture(texture_file[tex_index], &m_tex);
-    if ( nullptr == m_tex )
+    m_tex = LoadTexture(fileName);
+    if ( m_tex )
     {
-        MakeTexture(&m_tex);
+        this->OnSize(0, m_w, m_h);
+        ::SetFocus(m_hwnd);
     }
 
     return 0L;
-}
-
-//---------------------------------------------------------------------------//
-
-HRESULT MakeTexture(ITexture** pTexture)
-{
-    if ( nullptr == pTexture )
-    {
-        return E_INVALIDARG;
-    }
-    *pTexture = nullptr;
-
-    static const TextureDesc desc =
-    {
-        PixelFormat::RGBA8888, 4, 4, 0, 0,
-        GL_NEAREST, GL_NEAREST, GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT,
-        GL_REPLACE
-    };
-
-    static const uint8_t buffer[] =
-    {
-        255, 255, 255, 255,    0,   0,   0, 255,
-        255, 255, 255, 255,    0,   0,   0, 255,
-        255,   0,   0, 255,    0, 255,   0, 255,
-            0,   0, 255, 255,  255, 255, 255, 255,
-        128,   0,   0, 255,    0, 128,   0, 255,
-            0,   0, 128, 255,  128, 128, 128, 255,
-        255, 255,   0, 255,  255,   0, 255, 255,
-            0, 255, 255, 255,  255, 255, 255, 255,
-    };
-
-    static const size_t buf_size = sizeof(uint8_t) * sizeof(buffer);
-
-    *pTexture = new GLTexture(&desc, buf_size, buffer);
-
-    return 0L;
-}
-
-//---------------------------------------------------------------------------//
-
-HRESULT LoadTexture(LPCWSTR fileName, ITexture** pTexture)
-{
-    if ( nullptr == pTexture )
-    {
-        return E_INVALIDARG;
-    }
-    *pTexture = nullptr;
-
-    HRESULT hr;
-
-    ComPtr<IWICImagingFactory> factory;
-    hr = ::CoCreateInstance
-    (
-        CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
-        IID_IWICImagingFactory, (void**)&factory
-    );
-    if ( nullptr == factory.GetInterface() )
-    {
-        DebugPrintLn(TEXT("CoCreateInstance() failed"));
-        return hr;
-    }
-
-    ComPtr<IWICBitmapDecoder> decoder;
-    hr = factory->CreateDecoderFromFilename
-    (
-        fileName, nullptr, GENERIC_READ,
-        WICDecodeMetadataCacheOnLoad, &decoder
-    );
-    if ( nullptr == decoder.GetInterface() )
-    {
-        DebugPrintLn(TEXT("CreateDecoderFromFilename() failed"));
-        return hr;
-    }
-
-    uint32_t frameCount = 0;
-    hr = decoder->GetFrameCount(&frameCount);
-    DebugPrintLn(TEXT("frameCount: %d"), frameCount);
-    if ( 0 == frameCount )
-    {
-        DebugPrintLn(TEXT("GetFrameCount() failed"));
-        return hr;
-    }
-
-    ComPtr<IWICBitmapFrameDecode> frame;
-    hr = decoder->GetFrame(0, &frame);
-    if ( nullptr == frame.GetInterface() )
-    {
-        DebugPrintLn(TEXT("GetFrame() failed"));
-        return hr;
-    }
-
-    TextureDesc desc =
-    {
-        PixelFormat::UNKNOWN, 0, 0, 0, 0,
-        GL_LINEAR, GL_LINEAR, GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT,
-        GL_REPLACE
-    };
-    frame->GetSize((UINT*)&desc.width, (UINT*)&desc.height);
-    DebugPrintLn(TEXT("width: %d, height: %d"), desc.width, desc.height);
-
-    frame->GetResolution(&desc.dpiX, &desc.dpiY);
-    DebugPrintLn(TEXT("DPI(X, Y) = (%d, %d)"), desc.dpiX, desc.dpiY);
-
-    GUID pixelFormat = GUID_NULL;
-    uint32_t bitCount = 0;
-    hr = frame->GetPixelFormat(&pixelFormat);
-    DebugPrintLn
-    (
-        TEXT("pixelFormat: 0x%08x, 0x%04x, 0x%04x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x"),
-        pixelFormat.Data1, pixelFormat.Data2, pixelFormat.Data3,
-        pixelFormat.Data4[0], pixelFormat.Data4[1], pixelFormat.Data4[2], pixelFormat.Data4[3],
-        pixelFormat.Data4[4], pixelFormat.Data4[5], pixelFormat.Data4[6], pixelFormat.Data4[7]
-    );
-    if ( IsEqualGUID(pixelFormat, GUID_WICPixelFormat8bppIndexed) )
-    {
-        bitCount = 8;
-        desc.format = PixelFormat::A8;
-    }
-    else if ( IsEqualGUID(pixelFormat, GUID_WICPixelFormat24bppRGB) )
-    {
-        bitCount = 24;
-        desc.format = PixelFormat::RGB888;
-    }
-    else if ( IsEqualGUID(pixelFormat, GUID_WICPixelFormat24bppBGR) )
-    {
-        bitCount = 24;
-        desc.format = PixelFormat::BGR888;
-    }
-    else if ( IsEqualGUID(pixelFormat, GUID_WICPixelFormat32bppRGBA) ||
-              IsEqualGUID(pixelFormat, GUID_WICPixelFormat32bppRGB) )
-    {
-        bitCount = 32;
-        desc.format = PixelFormat::RGBA8888;
-    }
-    else if ( IsEqualGUID(pixelFormat, GUID_WICPixelFormat32bppBGRA) ||
-              IsEqualGUID(pixelFormat, GUID_WICPixelFormat32bppBGR) )
-    {
-        bitCount = 32;
-        desc.format = PixelFormat::BGRA8888;
-    }
-    else
-    {
-        DebugPrintLn(TEXT("GetPixelFormat() failed"));
-        return E_FAIL;
-    }
-    DebugPrintLn(TEXT("bitCount: %d"), bitCount);
-    DebugPrintLn(TEXT("PixelFormat: %d"), desc.format);
-
-    auto stride = (desc.width * (bitCount / 8) + 3) & ~3;
-    DebugPrintLn(TEXT("stride: %d"), stride);
-
-    auto buffer = new uint8_t[stride * desc.height];
-    auto size = sizeof(uint8_t) * (stride * desc.height);
-    //::FillMemory(buffer, size, 0xFF);
-    hr = frame->CopyPixels(0, stride, size, buffer);
-
-    *pTexture = new GLTexture(&desc, size, buffer);
-    delete[] buffer;
-    buffer = nullptr;
-
-    return hr;
 }
 
 //---------------------------------------------------------------------------//

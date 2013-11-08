@@ -16,21 +16,30 @@ INT32 WINAPI wWinMain
     INT32     nCmdShow        // •\Ž¦ó‘Ô
 )
 {
+    DebugPrintLn(TEXT("**********************************************"));
+
     ::CoInitialize(nullptr);
 
+    DebugPrintLn(TEXT("Creating main window..."));
     GLWnd wnd;
-    wnd.Create(TEXT("OpenGLTest"));
+    wnd.Create(TEXT("OpenGLTest"), WS_OVERLAPPEDWINDOW, WS_EX_ACCEPTFILES);
     wnd.Resize(256, 256);
     wnd.ToCenter();
     wnd.Show();
+    DebugPrintLn(TEXT("Created main window"));
 
-    Application app;
-    app.RegisterGameFunc([](void*args){ ((GLWnd*)args)->Update();}, &wnd);
-    app.Run();
+    //application.SetGameFunc([](void* args){ ((GLWnd*)args)->Update(); }, &wnd);
+    //application.PauseGameFunc();
+
+    DebugPrintLn(TEXT("---------------- Message Loop ----------------"));
+    auto ret = application.Run(30, 1001);
+    DebugPrintLn(TEXT("---------------- Message Loop ----------------"));
 
     ::CoUninitialize();
 
-    return 0;
+    DebugPrintLn(TEXT("**********************************************"));
+
+    return ret;
 }
 
 //---------------------------------------------------------------------------//

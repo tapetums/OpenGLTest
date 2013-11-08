@@ -3,6 +3,7 @@
 #pragma once
 
 #include <windows.h>
+#include <dwmapi.h>
 
 //---------------------------------------------------------------------------//
 
@@ -10,19 +11,14 @@ class DWM
 {
 public:
     DWM();
-    ~DWM();
+    ~DWM() = default;
 
 public:
     HRESULT (__stdcall* DwmIsCompositionEnabled)(BOOL*) = nullptr;
     HRESULT (__stdcall* DwmEnableBlurBehindWindow)(HWND, const DWM_BLURBEHIND*) = nullptr;
     HRESULT (__stdcall* DwmExtendFrameIntoClientArea)(HWND, const MARGINS*) = nullptr;
 
-private:
-    void __stdcall Init();
-    void __stdcall Uninit();
-
-private:
-    HMODULE m_dwmapi = nullptr;
+    bool __stdcall IsAvailable() const;
 
 private:
     DWM(const DWM&)             = delete;

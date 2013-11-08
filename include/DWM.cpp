@@ -4,86 +4,65 @@
 
 //---------------------------------------------------------------------------//
 
-#include <windows.h>
-#include <dwmapi.h>
-
 #include "DWM.h"
+
+//---------------------------------------------------------------------------//
+
+struct DWMHolder
+{
+    HMODULE module;
+
+    DWMHolder()
+    {
+        module = ::LoadLibraryExW
+        (
+            TEXT("dwmapi.dll"), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH
+        );
+    }
+
+    ~DWMHolder()
+    {
+        if ( module )
+        {
+            ::FreeLibrary(module);
+            module = nullptr;
+        }
+    }
+};
 
 //---------------------------------------------------------------------------//
 
 CLASSNAME::CLASSNAME()
 {
-    this->Init();
+    static DWMHolder holder;
+
+    if ( holder.module )
+    {
+        DwmIsCompositionEnabled = (HRESULT (__stdcall*)(BOOL*))::GetProcAddress
+        (
+            holder.module, "DwmIsCompositionEnabled"
+        );
+
+        DwmEnableBlurBehindWindow = (HRESULT (__stdcall*)(HWND, const DWM_BLURBEHIND*))::GetProcAddress
+        (
+            holder.module, "DwmEnableBlurBehindWindow"
+        );
+
+        DwmExtendFrameIntoClientArea = (HRESULT (__stdcall*)(HWND, const MARGINS*))::GetProcAddress
+        (
+            holder.module, "DwmExtendFrameIntoClientArea"
+        );
+    }
 }
 
 //---------------------------------------------------------------------------//
 
-CLASSNAME::~CLASSNAME()
+bool __stdcall CLASSNAME::IsAvailable() const
 {
-    this->Uninit();
-}
-
-//---------------------------------------------------------------------------//
-
-void __stdcall CLASSNAME::Init()
-{
-    m_dwmapi = ::LoadLibraryExW
-    (
-        TEXT("dwmapi.dll"), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH
-    );
-    if ( nullptr == m_dwmapi )
-    {
-        goto FREE_DLL;
-    }
-
-    DwmIsCompositionEnabled = (HRESULT (__stdcall*)(BOOL*))::GetProcAddress
-    (
-        m_dwmapi, "DwmIsCompositionEnabled"
-    );
-    if ( nullptr == DwmIsCompositionEnabled )
-    {
-        goto FREE_DLL;
-    }
-
-    DwmEnableBlurBehindWindow = (HRESULT (__stdcall*)(HWND, const DWM_BLURBEHIND*))::GetProcAddress
-    (
-        m_dwmapi, "DwmEnableBlurBehindWindow"
-    );
-    if ( nullptr == DwmEnableBlurBehindWindow )
-    {
-        goto FREE_DLL;
-    }
-
-    DwmExtendFrameIntoClientArea = (HRESULT (__stdcall*)(HWND, const MARGINS*))::GetProcAddress
-    (
-        m_dwmapi, "DwmExtendFrameIntoClientArea"
-    );
-    if ( nullptr == DwmExtendFrameIntoClientArea )
-    {
-        goto FREE_DLL;
-    }
-
-    return;
-
-FREE_DLL:
-    this->Uninit();
-
-    return;
-}
-
-//---------------------------------------------------------------------------//
-
-void __stdcall CLASSNAME::Uninit()
-{
-    if ( m_dwmapi )
-    {
-        ::FreeLibrary(m_dwmapi);
-        m_dwmapi = nullptr;
-    }
-
-    DwmIsCompositionEnabled      = nullptr;
-    DwmEnableBlurBehindWindow    = nullptr;
-    DwmExtendFrameIntoClientArea = nullptr;
+    return ( DwmIsCompositionEnabled &&
+             DwmEnableBlurBehindWindow &&
+             DwmExtendFrameIntoClientArea ) ?
+             true : false;
 }
 
 //---------------------------------------------------------------------------//

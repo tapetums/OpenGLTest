@@ -13,7 +13,10 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="include">
+    <Filter Include="ヘッダー ファイル\include">
+      <UniqueIdentifier>{19e1c480-26ba-4512-912c-9222dba40eba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\include">
       <UniqueIdentifier>{903b4b6e-9824-4717-bbb7-a3dc9335d9a3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -28,22 +31,22 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="include\Application.cpp">
-      <Filter>include</Filter>
+      <Filter>ソース ファイル\include</Filter>
     </ClCompile>
     <ClCompile Include="include\DebugPrint.cpp">
-      <Filter>include</Filter>
+      <Filter>ソース ファイル\include</Filter>
     </ClCompile>
     <ClCompile Include="include\DWM.cpp">
-      <Filter>include</Filter>
+      <Filter>ソース ファイル\include</Filter>
     </ClCompile>
     <ClCompile Include="include\GlassWnd.cpp">
-      <Filter>include</Filter>
-    </ClCompile>
-    <ClCompile Include="include\Theme.cpp">
-      <Filter>include</Filter>
+      <Filter>ソース ファイル\include</Filter>
     </ClCompile>
     <ClCompile Include="include\UWnd.cpp">
-      <Filter>include</Filter>
+      <Filter>ソース ファイル\include</Filter>
+    </ClCompile>
+    <ClCompile Include="include\UxTheme.cpp">
+      <Filter>ソース ファイル\include</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -56,26 +59,39 @@
     <ClInclude Include="ITexture.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="include\UxTheme.h">
+      <Filter>ヘッダー ファイル\include</Filter>
+    </ClInclude>
     <ClInclude Include="include\Application.h">
-      <Filter>include</Filter>
+      <Filter>ヘッダー ファイル\include</Filter>
     </ClInclude>
     <ClInclude Include="include\ComPtr.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="include\DebugPrint.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="include\DWM.h">
-      <Filter>include</Filter>
+      <Filter>ヘッダー ファイル\include</Filter>
     </ClInclude>
     <ClInclude Include="include\GlassWnd.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Theme.h">
-      <Filter>include</Filter>
+      <Filter>ヘッダー ファイル\include</Filter>
     </ClInclude>
     <ClInclude Include="include\UWnd.h">
-      <Filter>include</Filter>
+      <Filter>ヘッダー ファイル\include</Filter>
     </ClInclude>
+    <ClInclude Include="include\DWM.h">
+      <Filter>ヘッダー ファイル\include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DebugPrint.h">
+      <Filter>ヘッダー ファイル\include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="octocat.ico">
+      <Filter>リソース ファイル</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="res.res">
+      <Filter>リソース ファイル</Filter>
+    </Resource>
   </ItemGroup>
 </Project>
