@@ -1,16 +1,29 @@
 ﻿// Application.cpp
 
-#define CLASSNAME Application
+//---------------------------------------------------------------------------//
+//
+// メッセージループをカプセル化するクラス
+// （ゲームループ内包）
+//   Copyright (C) 2013 tapetums
+//
+//---------------------------------------------------------------------------//
+
+#ifdef THIS
+#undef THIS
+#endif
+
+#define THIS Application
 
 //---------------------------------------------------------------------------//
 
 #include <windows.h>
 
 #include "DebugPrint.h"
-#include "Application.h"
+#include "Application.hpp"
 
 //---------------------------------------------------------------------------//
 
+// アプリケーションクラスの唯一のインスタンス
 Application application;
 
 //---------------------------------------------------------------------------//
@@ -26,22 +39,20 @@ struct Timer
 
     Timer()
     {
-        this->Rest();
+        this->Reset();
     }
 
     ~Timer()
     {
     }
 
-    void Rest()
+    void Reset()
     {
         ::QueryPerformanceFrequency((LARGE_INTEGER*)&frequency);
         ::QueryPerformanceCounter((LARGE_INTEGER*)&start_time);
 
-        next_time       = 0;
-        fps_numerator   = 1;
-        fps_denominator = 1000;
-        frame_count     = 0;
+        next_time   = 0;
+        frame_count = 0;
 
         DebugPrintLn(TEXT("PerformanceFrequency: %d"), frequency);
     }
@@ -59,13 +70,22 @@ struct Timer
     {
         int64_t present_time;
         ::QueryPerformanceCounter((LARGE_INTEGER*)&present_time);
+        //DebugPrintLn(TEXT("present_time: %d"), present_time);
 
         return (present_time >= next_time);
     }
 
     void SetNextTime()
     {
-        DebugPrintLn(TEXT("frame_count: %d"), frame_count);
+        // 64bit 環境であれば、frame_count は 240fps の場合で
+        // 約 2,435,643,939 年後に オーバーフローします。
+        // （32bit 環境だと 約 207 日後。）
+        if ( frame_count > (1 << (32 - 1)) )
+        {
+            DebugPrintLn(TEXT("念のためオーバーフロー防止"));
+            this->Reset();
+        }
+        //DebugPrintLn(TEXT("frame_count: %u"), frame_count);
 
         int64_t present_time;
         ::QueryPerformanceCounter((LARGE_INTEGER*)&present_time);
@@ -77,25 +97,26 @@ struct Timer
                         (frame_count * frequency * fps_denominator) /
                         (fps_numerator * 1000);
         }
+        //DebugPrintLn(TEXT("next_time: %d, present_time: %d"), next_time, present_time);
     }
 };
 
 //---------------------------------------------------------------------------//
 
-CLASSNAME::CLASSNAME()
+Application::THIS()
 {
 }
 
 //---------------------------------------------------------------------------//
 
-CLASSNAME::~CLASSNAME()
+Application::~THIS()
 {
     this->Exit(0);
 }
 
 //---------------------------------------------------------------------------//
 
-int32_t __stdcall CLASSNAME::Run(uint16_t numerator, uint16_t denominator)
+int32_t __stdcall Application::Run(uint16_t numerator, uint16_t denominator)
 {
     MSG msg = {};
 
@@ -141,7 +162,7 @@ int32_t __stdcall CLASSNAME::Run(uint16_t numerator, uint16_t denominator)
 
 //---------------------------------------------------------------------------//
 
-void __stdcall CLASSNAME::Exit(int32_t nExitCode)
+void __stdcall Application::Exit(int32_t nExitCode)
 {
     m_is_running = false;
 
@@ -150,21 +171,21 @@ void __stdcall CLASSNAME::Exit(int32_t nExitCode)
 
 //---------------------------------------------------------------------------//
 
-void __stdcall CLASSNAME::PauseGameFunc()
+void __stdcall Application::PauseGameFunc()
 {
     m_is_game_active = false;
 }
 
 //---------------------------------------------------------------------------//
 
-void __stdcall CLASSNAME::ResumeGameFunc()
+void __stdcall Application::ResumeGameFunc()
 {
     m_is_game_active = true;
 }
 
 //---------------------------------------------------------------------------//
 
-void __stdcall CLASSNAME::SetGameFunc(GameFunc func, void* args)
+void __stdcall Application::SetGameFunc(GameFunc func, void* args)
 {
     if ( nullptr == func )
     {
@@ -176,6 +197,10 @@ void __stdcall CLASSNAME::SetGameFunc(GameFunc func, void* args)
 
     m_is_game_active = true;
 }
+
+//---------------------------------------------------------------------------//
+
+#undef THIS
 
 //---------------------------------------------------------------------------//
 

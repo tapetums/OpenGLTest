@@ -1,10 +1,20 @@
-﻿// Mesh.h
+﻿// Mesh.hpp
+
+#pragma once
+
+///---------------------------------------------------------------------------//
+//
+// 頂点インデックスを持つオブジェクトのためのクラス
+//   Copyright (C) 2013 tapetums
+//
+//---------------------------------------------------------------------------//
 
 #include <stdint.h>
 typedef float float32_t;
 
 //---------------------------------------------------------------------------//
 
+// 頂点インデックスを持つオブジェクトのためのクラス
 template<typename V, typename C, typename I>
 struct Mesh
 {
@@ -53,6 +63,7 @@ static uint8_t cube_indices[] =
     3, 0, 1,   3, 1, 2
 };
 
+// 立方体
 struct Cube : public Mesh<float32_t, uint8_t, uint8_t>
 {
     Cube()
@@ -68,4 +79,4 @@ struct Cube : public Mesh<float32_t, uint8_t, uint8_t>
 
 //---------------------------------------------------------------------------//
 
-// Mesh.h
+// Mesh.hpp

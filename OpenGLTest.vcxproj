@@ -158,28 +158,27 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="GLTexture.cpp" />
-    <ClCompile Include="GLWnd.cpp" />
+    <ClCompile Include="OpenGLTexture.cpp" />
     <ClCompile Include="include\Application.cpp" />
     <ClCompile Include="include\DebugPrint.cpp" />
     <ClCompile Include="include\DWM.cpp" />
     <ClCompile Include="include\GlassWnd.cpp" />
     <ClCompile Include="include\UWnd.cpp" />
     <ClCompile Include="include\UxTheme.cpp" />
+    <ClCompile Include="OpenGLWnd.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GLTexture.h" />
-    <ClInclude Include="GLWnd.h" />
-    <ClInclude Include="include\Application.h" />
+    <ClInclude Include="OpenGLTexture.hpp" />
+    <ClInclude Include="include\Application.hpp" />
     <ClInclude Include="include\ComPtr.h" />
     <ClInclude Include="include\DebugPrint.h" />
-    <ClInclude Include="include\DWM.h" />
-    <ClInclude Include="include\GlassWnd.h" />
-    <ClInclude Include="include\UWnd.h" />
-    <ClInclude Include="include\UxTheme.h" />
-    <ClInclude Include="ITexture.h" />
-    <ClInclude Include="Mesh.h" />
+    <ClInclude Include="include\DWM.hpp" />
+    <ClInclude Include="include\UWnd.hpp" />
+    <ClInclude Include="include\UxTheme.hpp" />
+    <ClInclude Include="ITexture.hpp" />
+    <ClInclude Include="Mesh.hpp" />
+    <ClInclude Include="OpenGLWnd.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="octocat.ico" />

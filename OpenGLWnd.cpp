@@ -1,8 +1,13 @@
-﻿// GLWnd.cpp
+﻿// OpenGLWnd.cpp
 
-#define CLASSNAME GLWnd
 #define BASENAME  GlassWnd
+#define CLASSNAME OpenGLWnd
 
+///---------------------------------------------------------------------------//
+//
+// OpenGL で描画するウィンドウのクラス
+//   Copyright (C) 2013 tapetums
+//
 //---------------------------------------------------------------------------//
 
 #include <windows.h>
@@ -19,8 +24,8 @@
 #include "include\DebugPrint.h"
 #include "include\ComPtr.h"
 
-#include "GLTexture.h"
-#include "GLWnd.h"
+#include "OpenGLTexture.hpp"
+#include "OpenGLWnd.hpp"
 
 //---------------------------------------------------------------------------//
 
@@ -69,7 +74,7 @@ ITexture* MakeTexture()
 
     static const size_t buf_size = sizeof(uint8_t) * sizeof(buffer);
 
-    return new GLTexture(&desc, buf_size, buffer);
+    return new OpenGLTexture(&desc, buf_size, buffer);
 }
 
 //---------------------------------------------------------------------------//
@@ -184,35 +189,11 @@ ITexture* LoadTexture(LPCWSTR fileName)
     auto buffer = new uint8_t[length];
     hr = frame->CopyPixels(0, stride, static_cast<UINT>(buf_size), buffer);
 
-    auto texture = new GLTexture(&desc, buf_size, buffer);
+    auto texture = new OpenGLTexture(&desc, buf_size, buffer);
     delete[] buffer;
     buffer = nullptr;
 
     return texture;
-}
-
-//---------------------------------------------------------------------------//
-
-void DrawGroundLines()
-{
-    float64_t ground_max_x = 300.0;
-    float64_t ground_max_y = 300.0;
-
-    ::glColor3d(0.8, 0.8, 0.8);  // 大地の色
-    ::glBegin(GL_LINES);
-
-    for ( double ly = -ground_max_y; ly <= ground_max_y; ly += 10.0 )
-    {
-        ::glVertex3d(-ground_max_x, ly, 0.0);
-        ::glVertex3d( ground_max_x, ly, 0.0);
-    }
-    for ( double lx = -ground_max_x; lx <= ground_max_x; lx += 10.0 )
-    {
-        ::glVertex3d(lx,  ground_max_y, 0.0);
-        ::glVertex3d(lx, -ground_max_y, 0.0);
-    }
-
-    ::glEnd();
 }
 
 //---------------------------------------------------------------------------//
@@ -249,7 +230,7 @@ CLASSNAME::CLASSNAME()
 {
     pimpl = new Impl;
 
-    m_className = TEXT("GLWnd");
+    m_className = TEXT("OpenGLWnd");
     UWnd::Register(m_className);
 }
 
@@ -429,8 +410,6 @@ void __stdcall CLASSNAME::Update()
 
     ::glDisable(GL_TEXTURE_2D);
     ::glDisable(GL_ALPHA_TEST);
- 
-    //DrawGroundLines();
 
     ::glFlush();
     ::SwapBuffers(m_dc);
@@ -451,13 +430,6 @@ LRESULT __stdcall CLASSNAME::OnCreate(WPARAM wp, LPARAM lp)
         0, 0, LR_DEFAULTSIZE | LR_SHARED
     );
    ::SendMessage(m_hwnd, WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM)icon);
-
-    icon = (HICON)::LoadImage
-    (
-        ::GetModuleHandle(nullptr), MAKEINTRESOURCE(1000), IMAGE_ICON,
-        256, 256, LR_DEFAULTSIZE | LR_SHARED
-    );
-    ::SendMessage(m_hwnd, WM_SETICON, (WPARAM)ICON_BIG, (LPARAM)icon);
 
     // D&D を受け付ける
     ::DragAcceptFiles(m_hwnd,TRUE);
@@ -490,8 +462,7 @@ LRESULT __stdcall CLASSNAME::OnSize(UINT16 fwSizeType, UINT16 w, UINT16 h)
 {
     if ( !m_fullscreen )
     {
-        auto h_caption = ::GetSystemMetrics(SM_CYCAPTION);
-        h -= h_caption;
+        h -= ::GetSystemMetrics(SM_CYCAPTION);
     }
 
     auto x  = 0;
@@ -567,6 +538,11 @@ LRESULT __stdcall CLASSNAME::OnMouseMove(UINT16 fwKeys, INT32 x, INT32 y)
 
 LRESULT __stdcall CLASSNAME::OnNcHitTest(INT32 x, INT32 y)
 {
+    if ( m_fullscreen )
+    {
+        return BASENAME::WndProc(m_hwnd, WM_NCHITTEST, 0, MAKELPARAM(x, y));
+    }
+
     auto cx = ::GetSystemMetrics(SM_CXSIZEFRAME);
     auto cy = ::GetSystemMetrics(SM_CYSIZEFRAME);
 
@@ -741,9 +717,10 @@ LRESULT __stdcall CLASSNAME::OnMouseHWheel(UINT16 fwKeys, INT16 zDelta, INT32 x,
 
 LRESULT __stdcall CLASSNAME::OnDropFiles(HDROP hDrop)
 {
-    WCHAR fileName[MAX_PATH + 1];
-    ::DragQueryFile(hDrop, 0, fileName, MAX_PATH);
-    DebugPrintLn(TEXT("Dropped! %s"), fileName);
+    WCHAR filename[MAX_PATH + 1];
+    ::DragQueryFile(hDrop, 0, filename, MAX_PATH);
+    DebugPrintLn(TEXT("Dropped:"));
+    DebugPrintLn(TEXT("\t%s"), filename);
 
     if ( m_tex )
     {
@@ -751,16 +728,16 @@ LRESULT __stdcall CLASSNAME::OnDropFiles(HDROP hDrop)
         m_tex = nullptr;
     }
 
-    m_tex = LoadTexture(fileName);
+    m_tex = LoadTexture(filename);
     if ( m_tex )
     {
         this->OnSize(0, m_w, m_h);
-        ::SetFocus(m_hwnd);
     }
+    ::SetFocus(m_hwnd);
 
     return 0L;
 }
 
 //---------------------------------------------------------------------------//
 
-// GLWnd.cpp
+// OpenGLWnd.cpp

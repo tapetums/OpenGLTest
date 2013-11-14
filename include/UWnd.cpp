@@ -1,13 +1,24 @@
 ﻿// UWnd.cpp
 
-#define CLASSNAME UWnd
+//---------------------------------------------------------------------------//
+//
+// ウィンドウの基底クラス
+//   Copyright (C) 2005-2013 tapetums
+//
+//---------------------------------------------------------------------------//
+
+#ifdef THIS
+#undef THIS
+#endif
+
+#define THIS UWnd
 
 //---------------------------------------------------------------------------//
 
 #include <windows.h>
 
 #include "DebugPrint.h"
-#include "UWnd.h"
+#include "UWnd.hpp"
 
 //---------------------------------------------------------------------------//
 
@@ -32,7 +43,7 @@ void __stdcall ShowLastError(LPCTSTR mbx_title)
 
 //---------------------------------------------------------------------------//
 
-CLASSNAME::CLASSNAME()
+UWnd::THIS()
 {
     m_className = TEXT("UWnd");
     UWnd::Register(m_className);
@@ -40,77 +51,77 @@ CLASSNAME::CLASSNAME()
 
 //---------------------------------------------------------------------------//
 
-CLASSNAME::~CLASSNAME()
+UWnd::~THIS()
 {
     this->Destroy();
 }
 
 //---------------------------------------------------------------------------//
 
-bool __stdcall CLASSNAME::IsFullScreen() const
+bool __stdcall UWnd::IsFullScreen() const
 {
     return m_fullscreen;
 }
 
 //---------------------------------------------------------------------------//
 
-INT32 __stdcall CLASSNAME::X() const
+INT32 __stdcall UWnd::X() const
 {
     return m_x;
 }
 
 //---------------------------------------------------------------------------//
 
-INT32 __stdcall CLASSNAME::Y() const
+INT32 __stdcall UWnd::Y() const
 {
     return m_y;
 }
 
 //---------------------------------------------------------------------------//
 
-INT32 __stdcall CLASSNAME::Width() const
+INT32 __stdcall UWnd::Width() const
 {
     return m_w;
 }
 
 //---------------------------------------------------------------------------//
 
-INT32 __stdcall CLASSNAME::Height() const
+INT32 __stdcall UWnd::Height() const
 {
     return m_h;
 }
 
 //---------------------------------------------------------------------------//
 
-DWORD __stdcall CLASSNAME::Style() const
+DWORD __stdcall UWnd::Style() const
 {
     return (DWORD)::GetWindowLongPtr(m_hwnd, GWL_STYLE);
 }
 
 //---------------------------------------------------------------------------//
 
-DWORD __stdcall CLASSNAME::StyleEx() const
+DWORD __stdcall UWnd::StyleEx() const
 {
     return (DWORD)::GetWindowLongPtr(m_hwnd, GWL_EXSTYLE);
 }
 
 //---------------------------------------------------------------------------//
 
-HWND __stdcall CLASSNAME::Handle() const
+HWND __stdcall UWnd::Handle() const
 {
     return m_hwnd;
 }
 
 //---------------------------------------------------------------------------//
 
-HWND __stdcall CLASSNAME::Parent() const
+HWND __stdcall UWnd::Parent() const
 {
     return (HWND)::GetWindowLongPtr(m_hwnd, GWLP_HWNDPARENT);
 }
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall CLASSNAME::Create
+HRESULT __stdcall UWnd::Create
 (
     LPCTSTR lpWindowName,
     DWORD   style, 
@@ -149,7 +160,7 @@ HRESULT __stdcall CLASSNAME::Create
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall CLASSNAME::Destroy()
+HRESULT __stdcall UWnd::Destroy()
 {
     if ( ::IsWindow(m_hwnd) == FALSE )
     {
@@ -165,7 +176,7 @@ HRESULT __stdcall CLASSNAME::Destroy()
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall CLASSNAME::Bounds(INT32 x, INT32 y, INT32 w, INT32 h)
+HRESULT __stdcall UWnd::Bounds(INT32 x, INT32 y, INT32 w, INT32 h)
 {
     this->AdjustRect(w, h);
 
@@ -181,7 +192,7 @@ HRESULT __stdcall CLASSNAME::Bounds(INT32 x, INT32 y, INT32 w, INT32 h)
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall CLASSNAME::Hide()
+HRESULT __stdcall UWnd::Hide()
 {
     ::ShowWindow(m_hwnd, SW_HIDE);
 
@@ -190,7 +201,7 @@ HRESULT __stdcall CLASSNAME::Hide()
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall CLASSNAME::Move(INT32 x, INT32 y)
+HRESULT __stdcall UWnd::Move(INT32 x, INT32 y)
 {
     ::SetWindowPos
     (
@@ -204,7 +215,7 @@ HRESULT __stdcall CLASSNAME::Move(INT32 x, INT32 y)
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall CLASSNAME::Refresh(BOOL bErase)
+HRESULT __stdcall UWnd::Refresh(BOOL bErase)
 {
     ::InvalidateRect(m_hwnd, nullptr, bErase);
 
@@ -213,7 +224,7 @@ HRESULT __stdcall CLASSNAME::Refresh(BOOL bErase)
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall CLASSNAME::Resize(INT32 w, INT32 h)
+HRESULT __stdcall UWnd::Resize(INT32 w, INT32 h)
 {
     this->AdjustRect(w, h);
 
@@ -229,7 +240,7 @@ HRESULT __stdcall CLASSNAME::Resize(INT32 w, INT32 h)
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall CLASSNAME::Show()
+HRESULT __stdcall UWnd::Show()
 {
     ::ShowWindow(m_hwnd, SW_SHOWNORMAL);
     ::UpdateWindow(m_hwnd);
@@ -239,7 +250,7 @@ HRESULT __stdcall CLASSNAME::Show()
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall CLASSNAME::ToCenter()
+HRESULT __stdcall UWnd::ToCenter()
 {
     if ( this->Parent() )
     {
@@ -274,7 +285,7 @@ struct MonitorUnderCursor
         POINT pt;
         ::GetCursorPos(&pt);
         auto hMonitor = ::MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
-    
+
         MONITORINFOEX miex = { };
         miex.cbSize = sizeof(miex);
         ::GetMonitorInfo(hMonitor, &miex);
@@ -292,7 +303,7 @@ struct MonitorUnderCursor
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall CLASSNAME::ToggleFullScreen(INT32 w, INT32 h)
+HRESULT __stdcall UWnd::ToggleFullScreen(INT32 w, INT32 h)
 {
     m_fullscreen = !m_fullscreen;
     DebugPrintLn(TEXT("ToggleFullScreen: %s"), m_fullscreen ? TEXT("true") : TEXT("false"));
@@ -306,9 +317,9 @@ HRESULT __stdcall CLASSNAME::ToggleFullScreen(INT32 w, INT32 h)
 
         DEVMODE dm = { };
         dm.dmSize       = sizeof(dm);
-	    dm.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT;
-	    dm.dmPelsWidth  = moniter.witdh;
-	    dm.dmPelsHeight = moniter.height;
+        dm.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT;
+        dm.dmPelsWidth  = moniter.witdh;
+        dm.dmPelsHeight = moniter.height;
         auto ret = ::ChangeDisplaySettingsEx
         (
             moniter.name, &dm, nullptr, CDS_TEST, 0
@@ -350,8 +361,9 @@ HRESULT __stdcall CLASSNAME::ToggleFullScreen(INT32 w, INT32 h)
         ::SetWindowPos
         (
             m_hwnd, nullptr,
-            (moniter.witdh - w) / 2 + moniter.x,
-            (moniter.height - h) / 2 + moniter.y, w, h,
+            (moniter.witdh  - w) / 2 + moniter.x,
+            (moniter.height - h) / 2 + moniter.y,
+            w, h,
             SWP_NOZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW
         );
 
@@ -361,7 +373,7 @@ HRESULT __stdcall CLASSNAME::ToggleFullScreen(INT32 w, INT32 h)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
+LRESULT __stdcall UWnd::WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
 {
     if ( uMsg == WM_CLOSE )
     {
@@ -376,7 +388,7 @@ LRESULT __stdcall CLASSNAME::WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
 
 //---------------------------------------------------------------------------//
 
-void __stdcall CLASSNAME::Register(LPCTSTR lpszClassName)
+void __stdcall UWnd::Register(LPCTSTR lpszClassName)
 {
     // ウィンドウクラスを登録
     WNDCLASSEX wc = { };
@@ -411,7 +423,7 @@ void __stdcall CLASSNAME::Register(LPCTSTR lpszClassName)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::StaticWndProc
+LRESULT __stdcall UWnd::StaticWndProc
 (
     HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp
 )
@@ -472,9 +484,9 @@ LRESULT __stdcall CLASSNAME::StaticWndProc
 
 //---------------------------------------------------------------------------//
 
-void __stdcall CLASSNAME::AdjustRect(INT32& w, INT32& h) const
+void __stdcall UWnd::AdjustRect(INT32& w, INT32& h) const
 {
-    DebugPrintLn(TEXT("AdjustRect() begin"));
+    DebugPrintLn(TEXT("AdjustRect(%d, %d) begin"), w, h);
 
     RECT rc = { 0, 0, w, h };
     BOOL  hasMenu = ::GetMenu(m_hwnd) ? TRUE : FALSE;
@@ -485,9 +497,13 @@ void __stdcall CLASSNAME::AdjustRect(INT32& w, INT32& h) const
     w = rc.right  - rc.left;
     h = rc.bottom - rc.top;
 
-    DebugPrintLn(TEXT("AdjustRect() end"));
+    DebugPrintLn(TEXT("AdjustRect(%d, %d) end"), w, h);
 }
 
 //---------------------------------------------------------------------------//
+
+#undef THIS
+
+///---------------------------------------------------------------------------//
 
 // UWnd.cpp

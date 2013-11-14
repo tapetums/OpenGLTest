@@ -1,10 +1,21 @@
 ﻿// DWM.cpp
 
-#define CLASSNAME DWM
+//---------------------------------------------------------------------------//
+//
+// Desktop Window Manager API の ラッパークラス
+//   Copyright (C) 2007-2013 tapetums
+//
+//---------------------------------------------------------------------------//
+
+#ifdef THIS
+#undef THIS
+#endif
+
+#define THIS DWM
 
 //---------------------------------------------------------------------------//
 
-#include "DWM.h"
+#include "DWM.hpp"
 
 //---------------------------------------------------------------------------//
 
@@ -32,7 +43,7 @@ struct DWMHolder
 
 //---------------------------------------------------------------------------//
 
-CLASSNAME::CLASSNAME()
+DWM::THIS()
 {
     static DWMHolder holder;
 
@@ -42,12 +53,10 @@ CLASSNAME::CLASSNAME()
         (
             holder.module, "DwmIsCompositionEnabled"
         );
-
         DwmEnableBlurBehindWindow = (HRESULT (__stdcall*)(HWND, const DWM_BLURBEHIND*))::GetProcAddress
         (
             holder.module, "DwmEnableBlurBehindWindow"
         );
-
         DwmExtendFrameIntoClientArea = (HRESULT (__stdcall*)(HWND, const MARGINS*))::GetProcAddress
         (
             holder.module, "DwmExtendFrameIntoClientArea"
@@ -57,13 +66,17 @@ CLASSNAME::CLASSNAME()
 
 //---------------------------------------------------------------------------//
 
-bool __stdcall CLASSNAME::IsAvailable() const
+bool __stdcall DWM::IsAvailable() const
 {
     return ( DwmIsCompositionEnabled &&
              DwmEnableBlurBehindWindow &&
              DwmExtendFrameIntoClientArea ) ?
              true : false;
 }
+
+//---------------------------------------------------------------------------//
+
+#undef THIS
 
 //---------------------------------------------------------------------------//
 

@@ -1,11 +1,19 @@
-﻿// UWnd.h
+﻿// UWnd.hpp
 
 #pragma once
+
+//---------------------------------------------------------------------------//
+//
+// ウィンドウをカプセル化するクラス
+//   Copyright (C) 2005-2013 tapetums
+//
+//---------------------------------------------------------------------------//
 
 #include <windows.h>
 
 //---------------------------------------------------------------------------//
 
+// ウィンドウの基底クラス
 class UWnd
 {
 public:
@@ -67,4 +75,30 @@ private:
 
 //---------------------------------------------------------------------------//
 
-// UWnd.h
+class DWM;
+class UxTheme;
+
+// AeroGlass対応 ウィンドウの基底クラス
+class GlassWnd : public UWnd
+{
+public:
+    GlassWnd();
+    ~GlassWnd();
+
+    LRESULT __stdcall WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp) override;
+
+protected:
+    LRESULT __stdcall OnDwmCompositionChanged(HWND hwnd);
+    LRESULT __stdcall OnThemeChanged(HWND hwnd);
+
+protected:
+    DWM*     dwm           = nullptr;
+    UxTheme* uxtheme       = nullptr;
+    HBRUSH   m_hBr         = nullptr;
+    HANDLE   m_hTheme      = nullptr;
+    BOOL     m_compEnabled = FALSE;
+};
+
+//---------------------------------------------------------------------------//
+
+// UWnd.hpp

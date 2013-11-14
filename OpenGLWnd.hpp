@@ -1,20 +1,26 @@
-﻿// GLWnd.h
+﻿// OpenGLWnd.hpp
 
 #pragma once
 
-#include "include\GlassWnd.h"
+///---------------------------------------------------------------------------//
+//
+// OpenGL で描画するウィンドウのクラス
+//   Copyright (C) 2013 tapetums
+//
+//---------------------------------------------------------------------------//
+
+#include "include\UWnd.hpp"
 
 //---------------------------------------------------------------------------//
 
 struct ITexture;
 
-//---------------------------------------------------------------------------//
-
-class GLWnd : public GlassWnd
+// OpenGL で描画するウィンドウのクラス
+class OpenGLWnd : public GlassWnd
 {
 public:
-    GLWnd();
-    ~GLWnd();
+    OpenGLWnd();
+    ~OpenGLWnd();
 
     LRESULT __stdcall WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp) override;
 
@@ -50,4 +56,4 @@ private:
 
 //---------------------------------------------------------------------------//
 
-// GLWnd.h
+// OpenGLWnd.hpp

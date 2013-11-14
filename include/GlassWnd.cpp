@@ -1,20 +1,31 @@
 ﻿// GlassWnd.cpp
 
-#define CLASSNAME GlassWnd
-#define BASENAME  UWnd
+//---------------------------------------------------------------------------//
+//
+// AeroGlass対応 ウィンドウの基底クラス
+//   Copyright (C) 2007-2013 tapetums
+//
+//---------------------------------------------------------------------------//
+
+#ifdef THIS
+#undef THIS
+#endif
+
+#define THIS GlassWnd
+#define BASE UWnd
 
 //---------------------------------------------------------------------------//
 
 #include <windows.h>
 
-#include "DWM.h"
-#include "UxTheme.h"
+#include "DWM.hpp"
+#include "UxTheme.hpp"
 
-#include "GlassWnd.h"
+#include "UWnd.hpp"
 
 //---------------------------------------------------------------------------//
 
-CLASSNAME::CLASSNAME()
+GlassWnd::THIS()
 {
     dwm     = new DWM;
     uxtheme = new UxTheme;
@@ -29,7 +40,7 @@ CLASSNAME::CLASSNAME()
 
 //---------------------------------------------------------------------------//
 
-CLASSNAME::~CLASSNAME()
+GlassWnd::~THIS()
 {
     if ( m_hBr )
     {
@@ -56,7 +67,7 @@ CLASSNAME::~CLASSNAME()
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
+LRESULT __stdcall GlassWnd::WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
 {
     switch (uMsg)
     {
@@ -77,7 +88,7 @@ LRESULT __stdcall CLASSNAME::WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnDwmCompositionChanged(HWND hwnd)
+LRESULT __stdcall GlassWnd::OnDwmCompositionChanged(HWND hwnd)
 {
     if ( !dwm->IsAvailable() )
     {
@@ -116,7 +127,7 @@ LRESULT __stdcall CLASSNAME::OnDwmCompositionChanged(HWND hwnd)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnThemeChanged(HWND hwnd)
+LRESULT __stdcall GlassWnd::OnThemeChanged(HWND hwnd)
 {
     if ( uxtheme->IsAvailable() )
     {
@@ -133,6 +144,11 @@ LRESULT __stdcall CLASSNAME::OnThemeChanged(HWND hwnd)
 
     return OnDwmCompositionChanged(hwnd);
 }
+
+//---------------------------------------------------------------------------//
+
+#undef BASE
+#undef THIS
 
 //---------------------------------------------------------------------------//
 

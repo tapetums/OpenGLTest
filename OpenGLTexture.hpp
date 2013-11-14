@@ -1,18 +1,27 @@
-﻿// GLTexture.h
+﻿// OpenGLTexture.hpp
 
 #pragma once
 
-#include <stdint.h>
+///---------------------------------------------------------------------------//
+//
+// ITexure の OpenGL版 実装
+//   Copyright (C) 2013 tapetums
+//
+//---------------------------------------------------------------------------//
 
-#include "ITexture.h"
+#include <stdint.h>
+#include <gl/gl.h>
+
+#include "ITexture.hpp"
 
 //---------------------------------------------------------------------------//
 
-class GLTexture : public ITexture
+// ITexure の OpenGL版 実装
+class OpenGLTexture : public ITexture
 {
 public:
-    GLTexture(const TextureDesc* desc, size_t buf_size, const void* buffer);
-    ~GLTexture() override;
+    OpenGLTexture(const TextureDesc* desc, size_t buf_size, const void* buffer);
+    ~OpenGLTexture() override;
 
     const void*        Buffer()   const override;
     const size_t       BufSize()  const override;
@@ -32,4 +41,4 @@ private:
 
 //---------------------------------------------------------------------------//
 
-// GLTexture.h
+// OpenGLTexture.hpp

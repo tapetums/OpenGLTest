@@ -1,7 +1,12 @@
 ﻿// GLTexture.cpp
 
-#define CLASSNAME GLTexture
+#define CLASSNAME OpenGLTexture
 
+///---------------------------------------------------------------------------//
+//
+// ITexure の OpenGL版 実装
+//   Copyright (C) 2013 tapetums
+//
 //---------------------------------------------------------------------------//
 
 #include <windows.h>
@@ -12,7 +17,7 @@
 
 #include "include\DebugPrint.h"
 
-#include "GLTexture.h"
+#include "OpenGLTexture.hpp"
 
 //---------------------------------------------------------------------------//
 

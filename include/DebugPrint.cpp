@@ -1,11 +1,18 @@
 ﻿// DebugPrint.cpp
 
-#include "DebugPrint.h"
+//---------------------------------------------------------------------------//
+//
+// デバッグウィンドウへの出力関数
+//   Copyright (C) 2013 tapetums
+//
+//---------------------------------------------------------------------------//
 
-#if defined(_DEBUG) || defined(DEBUG) // Debugのとき
+#if defined(_DEBUG) || defined(DEBUG)
 
 #include <windows.h>
 #include <strsafe.h>
+
+#include "DebugPrint.h"
 
 //---------------------------------------------------------------------------//
 
@@ -85,6 +92,8 @@ void __stdcall DebugPrintLn(const wchar_t* format, ...)
 
 //---------------------------------------------------------------------------//
 
-#endif
+#endif // #if defined(_DEBUG) || defined(DEBUG)
+
+//---------------------------------------------------------------------------//
 
 // DebugPrint.cpp

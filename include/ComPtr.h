@@ -7,10 +7,23 @@
 // FITNESS FOR A PARTICULAR PURPOSE.
 //===================================================================================
 
+//===================================================================================
+// Modified by tapetums 2012-2013
+//  added Attach() and Detach() method
+//===================================================================================
 
 #pragma once
 
 #include <type_traits>
+
+#ifndef _HRESULT_DEFINED
+#define _HRESULT_DEFINED
+#ifdef __midl
+typedef LONG HRESULT;
+#else
+typedef _Return_type_success_(return >= 0) long HRESULT;
+#endif // __midl
+#endif // !_HRESULT_DEFINED
 
 //
 // This structs acts as a smart pointer for IUnknown pointers
@@ -21,10 +34,10 @@ struct ComPtr
 {
 public:
 
-    ComPtr(T* lComPtr = nullptr) : m_ComPtr(lComPtr)
+    ComPtr(T* lComPtr = nullptr, bool addref = true) : m_ComPtr(lComPtr)
     {
         static_assert(std::is_base_of<IUnknown, T>::value, "T needs to be IUnknown based");
-        if (m_ComPtr)
+        if (m_ComPtr && addref)
         {
             m_ComPtr->AddRef();
         }
@@ -81,13 +94,30 @@ public:
         return m_ComPtr;
     }
 
-    ~ComPtr()
+    T* Attach(T* lComPtr)
+    {
+        if (m_ComPtr)
+        {
+            m_ComPtr->Release();
+        }
+
+        m_ComPtr = lComPtr;
+
+        return m_ComPtr;
+    }
+
+    void Detach()
     {
         if (m_ComPtr)
         {
             m_ComPtr->Release();
             m_ComPtr = nullptr;
         }
+    }
+
+    ~ComPtr()
+    {
+        this->Detach();
     }
 
     operator T*() const
@@ -125,7 +155,7 @@ public:
 
     bool operator<(T* lComPtr) const
     {
-        return m_ComPtr < lComPtr;
+        return (m_ComPtr < lComPtr);
     }
 
     bool operator!=(T* lComPtr) const
@@ -135,7 +165,7 @@ public:
 
     bool operator==(T* lComPtr) const
     {
-        return m_ComPtr == lComPtr;
+        return (m_ComPtr == lComPtr);
     }
 
     template <typename I>
