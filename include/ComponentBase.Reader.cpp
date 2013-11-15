@@ -1,8 +1,8 @@
-﻿// ComponentBase.cpp
+﻿// ComponentBase.Readert.cpp
 
 //---------------------------------------------------------------------------//
 //
-// コンポーネントの基底クラス
+// 入力コンポーネントの基底クラス
 //   Copyright (C) 2013 tapetums
 //
 //---------------------------------------------------------------------------//
@@ -33,11 +33,11 @@ namespace CubeMelon {
 #undef THIS
 #endif
 
-#define THIS Component
+#define THIS ReaderComponent
 
 //---------------------------------------------------------------------------//
 
-Component::THIS(IUnknown* pUnkOuter)
+ReaderComponent::THIS(IUnknown* pUnkOuter)
 {
     COMP_NAMEtoUTF16
 
@@ -60,7 +60,7 @@ Component::THIS(IUnknown* pUnkOuter)
 
 //---------------------------------------------------------------------------//
 
-Component::~THIS()
+ReaderComponent::~THIS()
 {
     COMP_NAMEtoUTF16
 
@@ -90,7 +90,7 @@ Component::~THIS()
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall Component::QueryInterface
+HRESULT __stdcall ReaderComponent::QueryInterface
 (
     REFIID riid, void** ppvObject
 )
@@ -116,6 +116,16 @@ HRESULT __stdcall Component::QueryInterface
         console_out(TEXT("IID_IComponent"));
         *ppvObject = static_cast<IComponent*>(this);
     }
+    else if ( IsEqualIID(riid, IID_IIOComponent) )
+    {
+        console_out(TEXT("IID_IIOComponent"));
+        *ppvObject = static_cast<IIOComponent*>(this);
+    }
+    else if ( IsEqualIID(riid, IID_IReaderComponent) )
+    {
+        console_out(TEXT("IID_IReaderComponent"));
+        *ppvObject = static_cast<IReaderComponent*>(this);
+    }
     else
     {
         console_out(TEXT("No such an interface"));
@@ -132,7 +142,7 @@ HRESULT __stdcall Component::QueryInterface
 
 //---------------------------------------------------------------------------//
 
-ULONG __stdcall Component::AddRef()
+ULONG __stdcall ReaderComponent::AddRef()
 {
     COMP_NAMEtoUTF16
 
@@ -145,7 +155,7 @@ ULONG __stdcall Component::AddRef()
 
 //---------------------------------------------------------------------------//
 
-ULONG __stdcall Component::Release()
+ULONG __stdcall ReaderComponent::Release()
 {
     COMP_NAMEtoUTF16
 
@@ -173,35 +183,35 @@ ULONG __stdcall Component::Release()
 
 //---------------------------------------------------------------------------//
 
-U8CSTR __stdcall Component::api_version() const
+U8CSTR __stdcall ReaderComponent::api_version() const
 {
     return API_VERSION;
 }
 
 //---------------------------------------------------------------------------//
 
-REFCLSID __stdcall Component::clsid() const
+REFCLSID __stdcall ReaderComponent::clsid() const
 {
     return CLSID_Component;
 }
 
 //---------------------------------------------------------------------------//
 
-U8CSTR __stdcall Component::name() const
+U8CSTR __stdcall ReaderComponent::name() const
 {
-    return (const char8_t*)"Component";
+    return (const char8_t*)"ReaderComponent";
 }
 
 //---------------------------------------------------------------------------//
 
-U8CSTR __stdcall Component::description() const
+U8CSTR __stdcall ReaderComponent::description() const
 {
     return (const char8_t*)"Component Description Here";
 }
 
 //---------------------------------------------------------------------------//
 
-CompVerInfo* __stdcall Component::version() const
+CompVerInfo* __stdcall ReaderComponent::version() const
 {
     static CompVerInfo version = { 0, 0, 0, 'a' };
 
@@ -210,7 +220,7 @@ CompVerInfo* __stdcall Component::version() const
 
 //---------------------------------------------------------------------------//
 
-IComponent* __stdcall Component::owner() const
+IComponent* __stdcall ReaderComponent::owner() const
 {
     if ( m_owner )
     {
@@ -222,7 +232,7 @@ IComponent* __stdcall Component::owner() const
 
 //---------------------------------------------------------------------------//
 
-ICompProp* __stdcall Component::property() const
+ICompProp* __stdcall ReaderComponent::property() const
 {
     if ( m_property )
     {
@@ -234,14 +244,14 @@ ICompProp* __stdcall Component::property() const
 
 //---------------------------------------------------------------------------//
 
-STATE __stdcall Component::status() const
+STATE __stdcall ReaderComponent::status() const
 {
     return m_state;
 }
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall Component::AttachMessage
+HRESULT __stdcall ReaderComponent::AttachMessage
 (
     U8CSTR msg, IComponent* listener
 )
@@ -281,7 +291,7 @@ HRESULT __stdcall Component::AttachMessage
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall Component::DetachMessage
+HRESULT __stdcall ReaderComponent::DetachMessage
 (
     U8CSTR msg, IComponent* listener
 )
@@ -326,7 +336,7 @@ HRESULT __stdcall Component::DetachMessage
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall Component::NotifyMessage
+HRESULT __stdcall ReaderComponent::NotifyMessage
 (
     U8CSTR msg, IComponent* sender, IComponent* listener, IData* data
 )
@@ -367,7 +377,7 @@ HRESULT __stdcall Component::NotifyMessage
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall Component::CreateInstance
+HRESULT __stdcall ReaderComponent::CreateInstance
 (
     REFCLSID rclsid, REFIID riid, void** ppvObject
 )
@@ -401,7 +411,7 @@ HRESULT __stdcall Component::CreateInstance
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall Component::Start
+HRESULT __stdcall ReaderComponent::Start
 (
     void* args, IComponent* listener
 )
@@ -414,7 +424,7 @@ HRESULT __stdcall Component::Start
 
 //---------------------------------------------------------------------------//
 
-HRESULT __stdcall Component::Stop
+HRESULT __stdcall ReaderComponent::Stop
 (
     void* args, IComponent* listener
 )
@@ -427,7 +437,53 @@ HRESULT __stdcall Component::Stop
 
 //---------------------------------------------------------------------------//
 
-#undef THIS
+HRESULT __stdcall ReaderComponent::Close
+(
+    IComponent* listener
+)
+{
+    return E_NOTIMPL;
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall ReaderComponent::Open
+(
+    U8CSTR path, U8CSTR format_as, IComponent* listener
+)
+{
+    return E_NOTIMPL;
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall ReaderComponent::QuerySupport
+(
+    U8CSTR path, U8CSTR format_as
+)
+{
+    return E_NOTIMPL;
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall ReaderComponent::Seek
+(
+    int64_t offset, uint32_t origin, uint64_t* new_pos
+)
+{
+    return E_NOTIMPL;
+}
+
+//---------------------------------------------------------------------------//
+
+HRESULT __stdcall ReaderComponent::Read
+(
+    void* buffer, size_t buf_size, size_t* cb_data, IComponent* listener
+)
+{
+    return E_NOTIMPL;
+}
 
 //---------------------------------------------------------------------------//
 
@@ -435,4 +491,4 @@ HRESULT __stdcall Component::Stop
 
 //---------------------------------------------------------------------------//
 
-// ComponentBase.cpp
+// ComponentBase.Readert.cpp

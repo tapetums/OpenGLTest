@@ -1,8 +1,5 @@
 ﻿// OpenGLWnd.cpp
 
-#define BASENAME  GlassWnd
-#define CLASSNAME OpenGLWnd
-
 ///---------------------------------------------------------------------------//
 //
 // OpenGL で描画するウィンドウのクラス
@@ -91,7 +88,7 @@ ITexture* LoadTexture(LPCWSTR fileName)
     );
     if ( nullptr == factory.GetInterface() )
     {
-        DebugPrintLn(TEXT("CoCreateInstance() failed: 0x%08x"), hr);
+        console_out(TEXT("CoCreateInstance() failed: 0x%08x"), hr);
         return nullptr;
     }
 
@@ -103,16 +100,16 @@ ITexture* LoadTexture(LPCWSTR fileName)
     );
     if ( nullptr == decoder.GetInterface() )
     {
-        DebugPrintLn(TEXT("CreateDecoderFromFilename() failed: 0x%08x"), hr);
+        console_out(TEXT("CreateDecoderFromFilename() failed: 0x%08x"), hr);
         return nullptr;
     }
 
     uint32_t frameCount = 0;
     hr = decoder->GetFrameCount(&frameCount);
-    DebugPrintLn(TEXT("frameCount: %d"), frameCount);
+    console_out(TEXT("frameCount: %d"), frameCount);
     if ( 0 == frameCount )
     {
-        DebugPrintLn(TEXT("GetFrameCount() failed: 0x%08x"), hr);
+        console_out(TEXT("GetFrameCount() failed: 0x%08x"), hr);
         return nullptr;
     }
 
@@ -120,7 +117,7 @@ ITexture* LoadTexture(LPCWSTR fileName)
     hr = decoder->GetFrame(0, &frame);
     if ( nullptr == frame.GetInterface() )
     {
-        DebugPrintLn(TEXT("GetFrame() failed: 0x%08x"), hr);
+        console_out(TEXT("GetFrame() failed: 0x%08x"), hr);
         return nullptr;
     }
 
@@ -131,15 +128,15 @@ ITexture* LoadTexture(LPCWSTR fileName)
         GL_DECAL
     };
     frame->GetSize((UINT*)&desc.width, (UINT*)&desc.height);
-    DebugPrintLn(TEXT("width: %d, height: %d"), desc.width, desc.height);
+    console_out(TEXT("width: %d, height: %d"), desc.width, desc.height);
 
     frame->GetResolution(&desc.dpiX, &desc.dpiY);
-    DebugPrintLn(TEXT("DPI(X, Y) = (%d, %d)"), desc.dpiX, desc.dpiY);
+    console_out(TEXT("DPI(X, Y) = (%d, %d)"), desc.dpiX, desc.dpiY);
 
     GUID format_id = GUID_NULL;
     uint32_t bitCount = 0;
     hr = frame->GetPixelFormat(&format_id);
-    DebugPrintLn
+    console_out
     (
         TEXT("GetPixelFormat(): 0x%08x, 0x%04x, 0x%04x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x"),
         format_id.Data1, format_id.Data2, format_id.Data3,
@@ -175,14 +172,14 @@ ITexture* LoadTexture(LPCWSTR fileName)
     }
     else
     {
-        DebugPrintLn(TEXT("GetPixelFormat() failed: E_FAIL"));
+        console_out(TEXT("GetPixelFormat() failed: E_FAIL"));
         return nullptr;
     }
-    DebugPrintLn(TEXT("bitCount: %d"), bitCount);
-    DebugPrintLn(TEXT("PixelFormat: %d"), desc.format);
+    console_out(TEXT("bitCount: %d"), bitCount);
+    console_out(TEXT("PixelFormat: %d"), desc.format);
 
     auto stride = (desc.width * (bitCount / 8) + 3) & ~3;
-    DebugPrintLn(TEXT("stride: %d"), stride);
+    console_out(TEXT("stride: %d"), stride);
 
     size_t length = stride * desc.height;
     size_t buf_size = sizeof(uint8_t) * length;
@@ -198,11 +195,21 @@ ITexture* LoadTexture(LPCWSTR fileName)
 
 //---------------------------------------------------------------------------//
 
-struct CLASSNAME::Impl
+#define BASE GlassWnd
+
+#ifdef THIS
+#undef THIS
+#endif
+
+#define THIS OpenGLWnd
+
+//---------------------------------------------------------------------------//
+
+struct THIS::Impl
 {
     INT32 last_x, last_y;
 
-    void CreateContext(CLASSNAME* glwnd)
+    void CreateContext(THIS* glwnd)
     {
         if ( glwnd->m_dc )
         {
@@ -226,7 +233,7 @@ struct CLASSNAME::Impl
 
 //---------------------------------------------------------------------------//
 
-CLASSNAME::CLASSNAME()
+OpenGLWnd::THIS()
 {
     pimpl = new Impl;
 
@@ -236,7 +243,7 @@ CLASSNAME::CLASSNAME()
 
 //---------------------------------------------------------------------------//
 
-CLASSNAME::~CLASSNAME()
+OpenGLWnd::~THIS()
 {
     if ( m_tex )
     {
@@ -250,12 +257,12 @@ CLASSNAME::~CLASSNAME()
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::WndProc
+LRESULT __stdcall OpenGLWnd::WndProc
 (
     HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp
 )
 {
-    //DebugPrintLn(TEXT("uMsg: 0x%04X"), uMsg);
+    //console_out(TEXT("uMsg: 0x%04X"), uMsg);
 
     UINT16 fwKeys;
     INT16  zDelta;
@@ -299,7 +306,7 @@ LRESULT __stdcall CLASSNAME::WndProc
             }
             else
             {
-                return BASENAME::WndProc(hwnd, uMsg, wp, lp);
+                return BASE::WndProc(hwnd, uMsg, wp, lp);
             }
         }
         case WM_NCHITTEST:
@@ -358,14 +365,14 @@ LRESULT __stdcall CLASSNAME::WndProc
         }
         default:
         {
-            return BASENAME::WndProc(hwnd, uMsg, wp, lp);
+            return BASE::WndProc(hwnd, uMsg, wp, lp);
         }
     }
 }
 
 //---------------------------------------------------------------------------//
 
-void __stdcall CLASSNAME::Update()
+void __stdcall OpenGLWnd::Update()
 {
     auto h_caption = ::GetSystemMetrics(SM_CYCAPTION);
     auto left   = -1.0f;
@@ -386,7 +393,7 @@ void __stdcall CLASSNAME::Update()
     }
     else
     {
-        DebugPrintLn(TEXT("Missing Texture"));
+        console_out(TEXT("Missing Texture"));
         m_tex = MakeTexture();
     }
 
@@ -417,7 +424,7 @@ void __stdcall CLASSNAME::Update()
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnCreate(WPARAM wp, LPARAM lp)
+LRESULT __stdcall OpenGLWnd::OnCreate(WPARAM wp, LPARAM lp)
 {
     // AeroGlass化
     ::SendMessage(m_hwnd, WM_THEMECHANGED, 0, 0);
@@ -443,7 +450,7 @@ LRESULT __stdcall CLASSNAME::OnCreate(WPARAM wp, LPARAM lp)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnDestroy(WPARAM wp, LPARAM lp)
+LRESULT __stdcall OpenGLWnd::OnDestroy(WPARAM wp, LPARAM lp)
 {
     ::wglMakeCurrent(m_dc, nullptr);
 
@@ -458,7 +465,7 @@ LRESULT __stdcall CLASSNAME::OnDestroy(WPARAM wp, LPARAM lp)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnSize(UINT16 fwSizeType, UINT16 w, UINT16 h)
+LRESULT __stdcall OpenGLWnd::OnSize(UINT16 fwSizeType, UINT16 w, UINT16 h)
 {
     if ( !m_fullscreen )
     {
@@ -471,7 +478,7 @@ LRESULT __stdcall CLASSNAME::OnSize(UINT16 fwSizeType, UINT16 w, UINT16 h)
     auto sh = h;
     auto iw = m_tex->Desc()->width;
     auto ih = m_tex->Desc()->height;
-    //DebugPrintLn(TEXT("(iw, ih) = (%d, %d)"), iw, ih);
+    //console_out(TEXT("(iw, ih) = (%d, %d)"), iw, ih);
 
     if ( w * ih < h * iw )
     {
@@ -485,7 +492,7 @@ LRESULT __stdcall CLASSNAME::OnSize(UINT16 fwSizeType, UINT16 w, UINT16 h)
         sw = iw * h / ih;
         x = (w - sw) / 2;
     }
-    //DebugPrintLn(TEXT("(sw, sh) = (%d, %d)"), sw, sh);
+    //console_out(TEXT("(sw, sh) = (%d, %d)"), sw, sh);
 
     ::glViewport(x, y, (GLsizei)sw, (GLsizei)sh);
 
@@ -496,7 +503,7 @@ LRESULT __stdcall CLASSNAME::OnSize(UINT16 fwSizeType, UINT16 w, UINT16 h)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnNcCalcSize(NCCALCSIZE_PARAMS* pncsp)
+LRESULT __stdcall OpenGLWnd::OnNcCalcSize(NCCALCSIZE_PARAMS* pncsp)
 {
     if ( m_fullscreen )
     {
@@ -516,19 +523,19 @@ LRESULT __stdcall CLASSNAME::OnNcCalcSize(NCCALCSIZE_PARAMS* pncsp)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnMouseMove(UINT16 fwKeys, INT32 x, INT32 y)
+LRESULT __stdcall OpenGLWnd::OnMouseMove(UINT16 fwKeys, INT32 x, INT32 y)
 {
     if ( fwKeys & MK_LBUTTON )
     {
-        DebugPrintLn(TEXT("L dragging: (X, Y) = (%02d, %02d)"), x, y);
+        console_out(TEXT("L dragging: (X, Y) = (%02d, %02d)"), x, y);
     }
     if ( fwKeys & MK_RBUTTON )
     {
-        DebugPrintLn(TEXT("R dragging: (X, Y) = (%02d, %02d)"), x, y);
+        console_out(TEXT("R dragging: (X, Y) = (%02d, %02d)"), x, y);
     }
     if ( fwKeys & MK_MBUTTON )
     {
-        DebugPrintLn(TEXT("M dragging: (X, Y) = (%02d, %02d)"), x, y);
+        console_out(TEXT("M dragging: (X, Y) = (%02d, %02d)"), x, y);
     }
 
     return 0L;
@@ -536,11 +543,11 @@ LRESULT __stdcall CLASSNAME::OnMouseMove(UINT16 fwKeys, INT32 x, INT32 y)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnNcHitTest(INT32 x, INT32 y)
+LRESULT __stdcall OpenGLWnd::OnNcHitTest(INT32 x, INT32 y)
 {
     if ( m_fullscreen )
     {
-        return BASENAME::WndProc(m_hwnd, WM_NCHITTEST, 0, MAKELPARAM(x, y));
+        return BASE::WndProc(m_hwnd, WM_NCHITTEST, 0, MAKELPARAM(x, y));
     }
 
     auto cx = ::GetSystemMetrics(SM_CXSIZEFRAME);
@@ -552,13 +559,13 @@ LRESULT __stdcall CLASSNAME::OnNcHitTest(INT32 x, INT32 y)
     }
     else
     {
-        return BASENAME::WndProc(m_hwnd, WM_NCHITTEST, 0, MAKELPARAM(x, y));
+        return BASE::WndProc(m_hwnd, WM_NCHITTEST, 0, MAKELPARAM(x, y));
     }
 }
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnKeyDown(UINT16 nVirtKey, LPARAM lp)
+LRESULT __stdcall OpenGLWnd::OnKeyDown(UINT16 nVirtKey, LPARAM lp)
 {
     auto cx = ::GetSystemMetrics(SM_CXSIZEFRAME);
     auto cy = ::GetSystemMetrics(SM_CYSIZEFRAME);
@@ -581,8 +588,17 @@ LRESULT __stdcall CLASSNAME::OnKeyDown(UINT16 nVirtKey, LPARAM lp)
         case 'W':
         {
             if ( (::GetKeyState(VK_CONTROL) & 0x80) )
+   
             {
                 ::PostMessage(m_hwnd, WM_CLOSE, 0, 0);
+            }
+            break;
+        }
+        case VK_ESCAPE:
+        {
+            if ( this->IsFullScreen() )
+            {
+                this->ToggleFullScreen(256, 256);
             }
             break;
         }
@@ -628,7 +644,7 @@ LRESULT __stdcall CLASSNAME::OnKeyDown(UINT16 nVirtKey, LPARAM lp)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnLButtonDown(UINT16 fwKeys, INT32 x, INT32 y)
+LRESULT __stdcall OpenGLWnd::OnLButtonDown(UINT16 fwKeys, INT32 x, INT32 y)
 {
     if ( m_fullscreen )
     {
@@ -646,7 +662,7 @@ LRESULT __stdcall CLASSNAME::OnLButtonDown(UINT16 fwKeys, INT32 x, INT32 y)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnLButtonDblClk(UINT16 fwKeys, INT32 x, INT32 y)
+LRESULT __stdcall OpenGLWnd::OnLButtonDblClk(UINT16 fwKeys, INT32 x, INT32 y)
 {
     auto h_caption = ::GetSystemMetrics(SM_CYCAPTION);
     if ( y <= h_caption )
@@ -664,63 +680,63 @@ LRESULT __stdcall CLASSNAME::OnLButtonDblClk(UINT16 fwKeys, INT32 x, INT32 y)
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnLButtonUp(UINT16 fwKeys, INT32 x, INT32 y)
+LRESULT __stdcall OpenGLWnd::OnLButtonUp(UINT16 fwKeys, INT32 x, INT32 y)
 {
     return 0L;
 }
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnRButtonDown(UINT16 fwKeys, INT32 x, INT32 y)
+LRESULT __stdcall OpenGLWnd::OnRButtonDown(UINT16 fwKeys, INT32 x, INT32 y)
 {
     return 0L;
 }
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnRButtonUp(UINT16 fwKeys, INT32 x, INT32 y)
+LRESULT __stdcall OpenGLWnd::OnRButtonUp(UINT16 fwKeys, INT32 x, INT32 y)
 {
     return 0L;
 }
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnMButtonDown(UINT16 fwKeys, INT32 x, INT32 y)
+LRESULT __stdcall OpenGLWnd::OnMButtonDown(UINT16 fwKeys, INT32 x, INT32 y)
 {
     return 0L;
 }
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnMButtonUp(UINT16 fwKeys, INT32 x, INT32 y)
+LRESULT __stdcall OpenGLWnd::OnMButtonUp(UINT16 fwKeys, INT32 x, INT32 y)
 {
     return 0L;
 }
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnMouseWheel(UINT16 fwKeys, INT16 zDelta, INT32 x, INT32 y)
+LRESULT __stdcall OpenGLWnd::OnMouseWheel(UINT16 fwKeys, INT16 zDelta, INT32 x, INT32 y)
 {
-    DebugPrintLn(TEXT("V scroll: delta = %04d"), zDelta);
+    console_out(TEXT("V scroll: delta = %04d"), zDelta);
     return 0L;
 }
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnMouseHWheel(UINT16 fwKeys, INT16 zDelta, INT32 x, INT32 y)
+LRESULT __stdcall OpenGLWnd::OnMouseHWheel(UINT16 fwKeys, INT16 zDelta, INT32 x, INT32 y)
 {
-    DebugPrintLn(TEXT("H scroll: delta = %04d"), zDelta);
+    console_out(TEXT("H scroll: delta = %04d"), zDelta);
     return 0L;
 }
 
 //---------------------------------------------------------------------------//
 
-LRESULT __stdcall CLASSNAME::OnDropFiles(HDROP hDrop)
+LRESULT __stdcall OpenGLWnd::OnDropFiles(HDROP hDrop)
 {
     WCHAR filename[MAX_PATH + 1];
     ::DragQueryFile(hDrop, 0, filename, MAX_PATH);
-    DebugPrintLn(TEXT("Dropped:"));
-    DebugPrintLn(TEXT("\t%s"), filename);
+    console_out(TEXT("Dropped:"));
+    console_out(TEXT("\t%s"), filename);
 
     if ( m_tex )
     {
@@ -737,6 +753,10 @@ LRESULT __stdcall CLASSNAME::OnDropFiles(HDROP hDrop)
 
     return 0L;
 }
+
+//---------------------------------------------------------------------------//
+
+#undef THIS
 
 //---------------------------------------------------------------------------//
 

@@ -1,8 +1,8 @@
-// WinMain.cpp
+ï»¿// WinMain.cpp
 
 ///---------------------------------------------------------------------------//
 //
-// ƒAƒvƒŠƒP[ƒVƒ‡ƒ“ ƒGƒ“ƒgƒŠƒ|ƒCƒ“ƒg
+// ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ ã‚¨ãƒ³ãƒˆãƒªãƒã‚¤ãƒ³ãƒˆ
 //   Copyright (C) 2013 tapetums
 //
 //---------------------------------------------------------------------------//
@@ -24,40 +24,48 @@
 
 //---------------------------------------------------------------------------//
 
+extern const CLSID CLSID_Component = GUID_NULL;
+
+//---------------------------------------------------------------------------//
+
 INT32 WINAPI wWinMain
 (
-    HINSTANCE hInstance,      // Œ»Ý‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚Ìƒnƒ“ƒhƒ‹
-    HINSTANCE hPrevInstance,  // ˆÈ‘O‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚Ìƒnƒ“ƒhƒ‹
-    LPWSTR    lpCmdLine,      // ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“
-    INT32     nCmdShow        // •\Ž¦ó‘Ô
+    HINSTANCE hInstance,      // ç¾åœ¨ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®ãƒãƒ³ãƒ‰ãƒ«
+    HINSTANCE hPrevInstance,  // ä»¥å‰ã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã®ãƒãƒ³ãƒ‰ãƒ«
+    LPWSTR    lpCmdLine,      // ã‚³ãƒžãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³
+    INT32     nCmdShow        // è¡¨ç¤ºçŠ¶æ…‹
 )
 {
 #if _DEBUG
     ::_CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF | _CRTDBG_ALLOC_MEM_DF);
 #endif
 
-    DebugPrintLn(TEXT("**********************************************"));
+    console_out(TEXT("CubeMelon.exe"));
+    console_out(TEXT("**********************************************"));
 
     ::CoInitialize(nullptr);
 
-    DebugPrintLn(TEXT("Creating main window..."));
+    console_out(TEXT("Creating main window begin"));
     OpenGLWnd wnd;
     wnd.Create(TEXT("OpenGLTest"), WS_OVERLAPPEDWINDOW, WS_EX_ACCEPTFILES);
     wnd.Resize(256, 256);
     wnd.ToCenter();
     wnd.Show();
-    DebugPrintLn(TEXT("Created main window"));
+    console_out(TEXT("Creating main window end"));
 
     //application.SetGameFunc([](void* args){ ((OpenGLWnd*)args)->Update(); }, &wnd);
     //application.PauseGameFunc();
 
-    DebugPrintLn(TEXT("---------------- Message Loop ----------------"));
-    auto ret = application.Run(30, 1001);
-    DebugPrintLn(TEXT("---------------- Message Loop ----------------"));
+    INT32 ret;
+    console_out(TEXT("---------------- Message Loop ----------------"));
+    {
+        ret = application.Run(30, 1001);
+    }
+    console_out(TEXT("---------------- Message Loop ----------------"));
 
     ::CoUninitialize();
 
-    DebugPrintLn(TEXT("**********************************************"));
+    console_out(TEXT("CubeMelon.exe\n"));
 
     return ret;
 }

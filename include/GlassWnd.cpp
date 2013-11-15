@@ -7,21 +7,21 @@
 //
 //---------------------------------------------------------------------------//
 
-#ifdef THIS
-#undef THIS
-#endif
-
-#define THIS GlassWnd
-#define BASE UWnd
-
-//---------------------------------------------------------------------------//
-
 #include <windows.h>
 
 #include "DWM.hpp"
 #include "UxTheme.hpp"
 
 #include "UWnd.hpp"
+
+//---------------------------------------------------------------------------//
+
+#ifdef THIS
+#undef THIS
+#endif
+
+#define THIS GlassWnd
+#define BASE UWnd
 
 //---------------------------------------------------------------------------//
 
@@ -81,7 +81,7 @@ LRESULT __stdcall GlassWnd::WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp)
         }
         default:
         {
-            return BASENAME::WndProc(hwnd, uMsg, wp, lp);
+            return BASE::WndProc(hwnd, uMsg, wp, lp);
         }
     }
 }

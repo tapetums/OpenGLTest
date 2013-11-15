@@ -13,14 +13,20 @@
 
 //---------------------------------------------------------------------------//
 
+#ifdef THIS
+#undef THIS
+#endif
+
+#define THIS OpenGLWnd
+
 struct ITexture;
 
 // OpenGL で描画するウィンドウのクラス
 class OpenGLWnd : public GlassWnd
 {
 public:
-    OpenGLWnd();
-    ~OpenGLWnd();
+    THIS();
+    ~THIS();
 
     LRESULT __stdcall WndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp) override;
 
@@ -53,6 +59,8 @@ private:
     struct Impl;
     Impl* pimpl;
 };
+
+#undef THIS
 
 //---------------------------------------------------------------------------//
 

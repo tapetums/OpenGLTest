@@ -9,15 +9,15 @@
 //
 //---------------------------------------------------------------------------//
 
-#if defined(_DEBUG) || defined(DEBUG) // Debugのとき
+#if defined(_DEBUG) || defined(DEBUG)
 
-void __stdcall DebugPrint(const wchar_t* format, ...);
-void __stdcall DebugPrintLn(const wchar_t* format, ...);
+// Debugのとき
+void __stdcall console_out(const wchar_t* format, ...);
 
-#else // Releaseのとき
+#else
 
-#define DebugPrint(x, ...)
-#define DebugPrintLn(x, ...)
+// Releaseのとき
+#define console_out(x, ...)
 
 #endif
 

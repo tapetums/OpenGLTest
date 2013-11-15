@@ -16,12 +16,18 @@
 
 //---------------------------------------------------------------------------//
 
+#ifdef THIS
+#undef THIS
+#endif
+
+#define THIS OpenGLTexture
+
 // ITexure の OpenGL版 実装
 class OpenGLTexture : public ITexture
 {
 public:
-    OpenGLTexture(const TextureDesc* desc, size_t buf_size, const void* buffer);
-    ~OpenGLTexture() override;
+    THIS(const TextureDesc* desc, size_t buf_size, const void* buffer);
+    ~THIS() override;
 
     const void*        Buffer()   const override;
     const size_t       BufSize()  const override;
@@ -38,6 +44,8 @@ private:
     uint8_t*    m_buffer   = nullptr;
     TextureDesc m_desc;
 };
+
+#undef THIS
 
 //---------------------------------------------------------------------------//
 

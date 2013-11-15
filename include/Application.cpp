@@ -8,14 +8,6 @@
 //
 //---------------------------------------------------------------------------//
 
-#ifdef THIS
-#undef THIS
-#endif
-
-#define THIS Application
-
-//---------------------------------------------------------------------------//
-
 #include <windows.h>
 
 #include "DebugPrint.h"
@@ -54,7 +46,7 @@ struct Timer
         next_time   = 0;
         frame_count = 0;
 
-        DebugPrintLn(TEXT("PerformanceFrequency: %d"), frequency);
+        console_out(TEXT("PerformanceFrequency: %d"), frequency);
     }
 
     void SetFPS(uint16_t numerator = 1, uint16_t denominator = 1000)
@@ -62,15 +54,15 @@ struct Timer
         fps_numerator   = (numerator > 0) ? numerator : 1;
         fps_denominator = denominator;
 
-        DebugPrintLn(TEXT("Target FPS: %f"), fps_numerator * 1000.0L / fps_denominator);
-        DebugPrintLn(TEXT("Time Interval: %fms"), 1.0L * fps_denominator / fps_numerator);
+        console_out(TEXT("Target FPS: %f"), fps_numerator * 1000.0L / fps_denominator);
+        console_out(TEXT("Time Interval: %fms"), 1.0L * fps_denominator / fps_numerator);
     }
 
     bool HasTimeCome() const
     {
         int64_t present_time;
         ::QueryPerformanceCounter((LARGE_INTEGER*)&present_time);
-        //DebugPrintLn(TEXT("present_time: %d"), present_time);
+        //console_out(TEXT("present_time: %d"), present_time);
 
         return (present_time >= next_time);
     }
@@ -82,10 +74,10 @@ struct Timer
         // （32bit 環境だと 約 207 日後。）
         if ( frame_count > (1 << (32 - 1)) )
         {
-            DebugPrintLn(TEXT("念のためオーバーフロー防止"));
+            console_out(TEXT("念のためオーバーフロー防止"));
             this->Reset();
         }
-        //DebugPrintLn(TEXT("frame_count: %u"), frame_count);
+        //console_out(TEXT("frame_count: %u"), frame_count);
 
         int64_t present_time;
         ::QueryPerformanceCounter((LARGE_INTEGER*)&present_time);
@@ -97,9 +89,17 @@ struct Timer
                         (frame_count * frequency * fps_denominator) /
                         (fps_numerator * 1000);
         }
-        //DebugPrintLn(TEXT("next_time: %d, present_time: %d"), next_time, present_time);
+        //console_out(TEXT("next_time: %d, present_time: %d"), next_time, present_time);
     }
 };
+
+//---------------------------------------------------------------------------//
+
+#ifdef THIS
+#undef THIS
+#endif
+
+#define THIS Application
 
 //---------------------------------------------------------------------------//
 

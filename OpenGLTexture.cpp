@@ -1,6 +1,4 @@
-﻿// GLTexture.cpp
-
-#define CLASSNAME OpenGLTexture
+﻿// OpenGLTexture.cpp
 
 ///---------------------------------------------------------------------------//
 //
@@ -21,7 +19,15 @@
 
 //---------------------------------------------------------------------------//
 
-CLASSNAME::CLASSNAME
+#ifdef THIS
+#undef THIS
+#endif
+
+#define THIS OpenGLTexture
+
+//---------------------------------------------------------------------------//
+
+OpenGLTexture::THIS
 (
     const TextureDesc* desc, size_t buf_size, const void* buffer
 )
@@ -31,42 +37,42 @@ CLASSNAME::CLASSNAME
 
 //---------------------------------------------------------------------------//
 
-CLASSNAME::~CLASSNAME()
+OpenGLTexture::~THIS()
 {
     this->Uninit();
 }
 
 //---------------------------------------------------------------------------//
 
-const void* CLASSNAME::Buffer() const
+const void* OpenGLTexture::Buffer() const
 {
     return m_buffer;
 }
 
 //---------------------------------------------------------------------------//
 
-const size_t CLASSNAME::BufSize() const
+const size_t OpenGLTexture::BufSize() const
 {
     return m_buf_size;
 }
 
 //---------------------------------------------------------------------------//
 
-const TextureDesc* CLASSNAME::Desc() const
+const TextureDesc* OpenGLTexture::Desc() const
 {
     return &m_desc;
 }
 
 //---------------------------------------------------------------------------//
 
-const void* CLASSNAME::Instance() const
+const void* OpenGLTexture::Instance() const
 {
     return &m_instance;
 }
 
 //---------------------------------------------------------------------------//
 
-void CLASSNAME::Init
+void OpenGLTexture::Init
 (
     const TextureDesc* desc, size_t buf_size, const void* buffer
 )
@@ -131,7 +137,7 @@ void CLASSNAME::Init
     ::glGenTextures(1, &m_instance);
     if ( m_instance == 0 )
     {
-        DebugPrintLn(TEXT("glGenTextures error: 0x%04x"), glGetError());
+        console_out(TEXT("glGenTextures error: 0x%04x"), glGetError());
     }
 
     ::glBindTexture(GL_TEXTURE_2D, m_instance);
@@ -152,7 +158,7 @@ void CLASSNAME::Init
 
 //---------------------------------------------------------------------------//
 
-void CLASSNAME::Uninit()
+void OpenGLTexture::Uninit()
 {
     if ( m_instance != 0 )
     {
@@ -172,4 +178,8 @@ void CLASSNAME::Uninit()
 
 //---------------------------------------------------------------------------//
 
-// GLTexture.cpp
+#undef THIS
+
+//---------------------------------------------------------------------------//
+
+// OpenGLTexture.cpp

@@ -7,17 +7,8 @@
 //
 //---------------------------------------------------------------------------//
 
-#ifdef THIS
-#undef THIS
-#endif
-
-#define THIS UWnd
-
-//---------------------------------------------------------------------------//
-
-#include <windows.h>
-
 #include "DebugPrint.h"
+
 #include "UWnd.hpp"
 
 //---------------------------------------------------------------------------//
@@ -40,6 +31,14 @@ void __stdcall ShowLastError(LPCTSTR mbx_title)
     ::MessageBox(nullptr, lpMsgBuf, mbx_title, MB_OK);
     ::LocalFree(lpMsgBuf);
 }
+
+//---------------------------------------------------------------------------//
+
+#ifdef THIS
+#undef THIS
+#endif
+
+#define THIS UWnd
 
 //---------------------------------------------------------------------------//
 
@@ -296,8 +295,8 @@ struct MonitorUnderCursor
         witdh  = miex.rcMonitor.right  - miex.rcMonitor.left;
         height = miex.rcMonitor.bottom - miex.rcMonitor.top;
 
-        DebugPrintLn(TEXT("%s: (X, Y) = (%d, %d)"), name, x, y);
-        DebugPrintLn(TEXT("%s: (Witdh, Height) = (%d, %d)"), name, witdh, height);
+        console_out(TEXT("%s: (X, Y) = (%d, %d)"), name, x, y);
+        console_out(TEXT("%s: (Witdh, Height) = (%d, %d)"), name, witdh, height);
     }
 };
 
@@ -306,7 +305,7 @@ struct MonitorUnderCursor
 HRESULT __stdcall UWnd::ToggleFullScreen(INT32 w, INT32 h)
 {
     m_fullscreen = !m_fullscreen;
-    DebugPrintLn(TEXT("ToggleFullScreen: %s"), m_fullscreen ? TEXT("true") : TEXT("false"));
+    console_out(TEXT("ToggleFullScreen: %s"), m_fullscreen ? TEXT("true") : TEXT("false"));
 
     MonitorUnderCursor moniter;
 
@@ -320,22 +319,6 @@ HRESULT __stdcall UWnd::ToggleFullScreen(INT32 w, INT32 h)
         dm.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT;
         dm.dmPelsWidth  = moniter.witdh;
         dm.dmPelsHeight = moniter.height;
-        auto ret = ::ChangeDisplaySettingsEx
-        (
-            moniter.name, &dm, nullptr, CDS_TEST, 0
-        );
-        if ( ret != DISP_CHANGE_SUCCESSFUL )
-        {
-            m_fullscreen = false;
-            DebugPrintLn(TEXT("ChangeDisplaySettingsEx(CDS_TEST) failed"));
-
-            return E_FAIL;
-        }
-
-        ::ChangeDisplaySettingsEx
-        (
-            moniter.name, &dm, nullptr, CDS_FULLSCREEN, 0
-        );
 
         ::SetWindowPos
         (
@@ -348,11 +331,6 @@ HRESULT __stdcall UWnd::ToggleFullScreen(INT32 w, INT32 h)
     }
     else
     {
-        ::ChangeDisplaySettingsEx
-        (
-            moniter.name, nullptr, nullptr, 0, 0
-        );
-
         auto style = this->Style() ^ WS_POPUP;
         ::SetWindowLongPtr(m_hwnd, GWL_STYLE, (LONG_PTR)style);
 
@@ -445,7 +423,7 @@ LRESULT __stdcall UWnd::StaticWndProc
     // ウィンドウプロシージャの呼び出し
     if ( nullptr == wnd )
     {
-        DebugPrintLn(TEXT("Call DefWindowProc(0x%x)"), uMsg);
+        console_out(TEXT("Call DefWindowProc(0x%x)"), uMsg);
         return ::DefWindowProc(hwnd, uMsg, wp, lp);
     }
     else
@@ -456,21 +434,21 @@ LRESULT __stdcall UWnd::StaticWndProc
             case WM_CREATE:
             {
                 wnd->m_hwnd = hwnd;    // ウィンドウハンドル
-                DebugPrintLn(TEXT("Window Handle: 0x%p"), hwnd);
+                console_out(TEXT("Window Handle: 0x%p"), hwnd);
                 break;
             }
             case WM_MOVE:
             {
                 wnd->m_x = LOWORD(lp); // ウィンドウx座標
                 wnd->m_y = HIWORD(lp); // ウィンドウy座標
-                DebugPrintLn(TEXT("(X, Y) = (%d, %d)"), wnd->m_x, wnd->m_y);
+                console_out(TEXT("(X, Y) = (%d, %d)"), wnd->m_x, wnd->m_y);
                 break;
             }
             case WM_SIZE:
             {
                 wnd->m_w = LOWORD(lp); // ウィンドウ幅
                 wnd->m_h = HIWORD(lp); // ウィンドウ高
-                DebugPrintLn(TEXT("(Width, Height) = (%d, %d)"), wnd->m_w, wnd->m_h);
+                console_out(TEXT("(Width, Height) = (%d, %d)"), wnd->m_w, wnd->m_h);
                 break;
             }
             default:
@@ -486,7 +464,8 @@ LRESULT __stdcall UWnd::StaticWndProc
 
 void __stdcall UWnd::AdjustRect(INT32& w, INT32& h) const
 {
-    DebugPrintLn(TEXT("AdjustRect(%d, %d) begin"), w, h);
+    console_out(TEXT("AdjustRect begin"));
+    console_out(TEXT("(w, h) = (%d, %d)"), w, h);
 
     RECT rc = { 0, 0, w, h };
     BOOL  hasMenu = ::GetMenu(m_hwnd) ? TRUE : FALSE;
@@ -497,7 +476,8 @@ void __stdcall UWnd::AdjustRect(INT32& w, INT32& h) const
     w = rc.right  - rc.left;
     h = rc.bottom - rc.top;
 
-    DebugPrintLn(TEXT("AdjustRect(%d, %d) end"), w, h);
+    console_out(TEXT("(w, h) = (%d, %d)"), w, h);
+    console_out(TEXT("AdjustRect(%d, %d) end"), w, h);
 }
 
 //---------------------------------------------------------------------------//

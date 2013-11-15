@@ -158,6 +158,8 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="include\ComponentBase.cpp" />
+    <ClCompile Include="include\UTFConvert.cpp" />
     <ClCompile Include="OpenGLTexture.cpp" />
     <ClCompile Include="include\Application.cpp" />
     <ClCompile Include="include\DebugPrint.cpp" />
@@ -169,6 +171,8 @@
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\ComponentBase.hpp" />
+    <ClInclude Include="include\UTFConvert.hpp" />
     <ClInclude Include="OpenGLTexture.hpp" />
     <ClInclude Include="include\Application.hpp" />
     <ClInclude Include="include\ComPtr.h" />

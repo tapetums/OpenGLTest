@@ -172,14 +172,14 @@ interface IIOComponent : public IComponent
 
 interface IReaderComponent : public IIOComponent
 {
-    virtual HRESULT __stdcall Read(void* buffer, size_t buf_size, size_t* cb_read, IComponent* listener = nullptr) = 0;
+    virtual HRESULT __stdcall Read(void* buffer, size_t buf_size, size_t* cb_data, IComponent* listener = nullptr) = 0;
 };
 
 //---------------------------------------------------------------------------//
 
 interface IWriterComponent : public IIOComponent
 {
-    virtual HRESULT __stdcall Write(void* buffer, size_t buf_size, size_t* cb_written, IComponent* listener = nullptr) = 0;
+    virtual HRESULT __stdcall Write(void* buffer, size_t buf_size, size_t* cb_data, IComponent* listener = nullptr) = 0;
 };
 
 //---------------------------------------------------------------------------//

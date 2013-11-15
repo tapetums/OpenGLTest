@@ -7,6 +7,8 @@
 //
 //---------------------------------------------------------------------------//
 
+//---------------------------------------------------------------------------//
+
 #if defined(_DEBUG) || defined(DEBUG)
 
 #include <windows.h>
@@ -14,49 +16,129 @@
 
 #include "DebugPrint.h"
 
+#include "DWM.hpp"
+#include "UxTheme.hpp"
+
 //---------------------------------------------------------------------------//
 
 #define BUFSIZE 1024
 
 //---------------------------------------------------------------------------//
 
-void __stdcall DebugPrint(const wchar_t* format, ...)
+struct ConsoleHolder
 {
-    wchar_t buf[BUFSIZE];
+public:
+    HANDLE hout   = nullptr;
+    int    indent = 0;
 
-    va_list al;
-    va_start(al, format);
+    UxTheme uxtheme;
+
+    ConsoleHolder();
+    ~ConsoleHolder();
+};
+
+static ConsoleHolder console;
+
+//---------------------------------------------------------------------------//
+
+ConsoleHolder::ConsoleHolder()
+{
+    if ( FALSE == ::AttachConsole(ATTACH_PARENT_PROCESS) )
     {
-        ::StringCchVPrintfW(buf, BUFSIZE, format, al);
+        ::AllocConsole();
     }
-    va_end(al);
 
-    ::OutputDebugStringW(buf);
+    if ( uxtheme.IsAvailable() )
+    {
+        uxtheme.BufferedPaintInit();
+    }
+
+    hout = GetStdHandle(STD_OUTPUT_HANDLE);
+    if ( nullptr == hout )
+    {
+        return;
+    }
+
+    /// 以下はお遊び
+
+    if ( true )
+    {
+        return;
+    }
+
+    WCHAR buf[MAX_PATH];
+    ::GetConsoleTitle(buf, MAX_PATH);
+
+    auto hwnd = ::FindWindow(nullptr, buf);
+    if ( nullptr == hwnd )
+    {
+        return;
+    }
+
+    DWM dwm;
+
+    BOOL enabled = FALSE;
+    dwm.DwmIsCompositionEnabled(&enabled);
+    if ( FALSE == enabled )
+    {
+        return;
+    }
+
+    DWM_BLURBEHIND bb = { };
+    bb.dwFlags = DWM_BB_ENABLE;
+    bb.fEnable = TRUE;
+    bb.hRgnBlur = nullptr;
+    dwm.DwmEnableBlurBehindWindow(hwnd, &bb);
+
+    MARGINS margins = { -1 };
+    dwm.DwmExtendFrameIntoClientArea(hwnd, &margins);
+
+    ::InvalidateRect(hwnd, nullptr, TRUE);
 }
 
 //---------------------------------------------------------------------------//
 
-void __stdcall DebugPrintLn(const wchar_t* format, ...)
+ConsoleHolder::~ConsoleHolder()
 {
-    static int indent = 0;
+    if ( uxtheme.IsAvailable() )
+    {
+        uxtheme.BufferedPaintUnInit();
+    }
+
+    #if defined(_DEBUG) || defined(DEBUG)
+    if ( hout )
+    {
+        system("pause");
+    }
+    #endif
+
+    ::FreeConsole();
+}
+
+//---------------------------------------------------------------------------//
+
+void __stdcall console_out(const wchar_t* format, ...)
+{
+    DWORD cb_w = 0;
 
     wchar_t spaces[BUFSIZE];
     wchar_t buf[BUFSIZE];
 
     if ( wcsstr(format, TEXT(" end")) )
     {
-        if ( indent < 1 )
+        if ( console.indent < 1 )
         {
-            ::OutputDebugStringW(TEXT("\t\tA. F. O.\n"));
+            auto buf = TEXT("!\n");
+            ::WriteConsole(console.hout, buf, ::lstrlen(buf), &cb_w, nullptr);
         }
         else
         {
-            --indent;
+            --console.indent;
         }
     }
 
     int i = 0;
-    for ( ; i < indent; ++i )
+    for ( ; i < console.indent; ++i )
     {
         spaces[i*2]     = '.';
         spaces[i*2 + 1] = ' ';
@@ -72,7 +154,7 @@ void __stdcall DebugPrintLn(const wchar_t* format, ...)
         st.wHour, st.wMinute, st.wSecond, st.wMilliseconds,
         spaces
     );
-    ::OutputDebugStringW(buf);
+    ::WriteConsole(console.hout, buf, ::lstrlen(buf), &cb_w, nullptr);
 
     va_list al;
     va_start(al, format);
@@ -80,13 +162,13 @@ void __stdcall DebugPrintLn(const wchar_t* format, ...)
         ::StringCchVPrintfW(buf, BUFSIZE, format, al);
     }
     va_end(al);
-    ::OutputDebugStringW(buf);
+    ::WriteConsole(console.hout, buf, ::lstrlen(buf), &cb_w, nullptr);
 
-    ::OutputDebugStringW(L"\n");
+    ::WriteConsole(console.hout, TEXT("\n"), 1, &cb_w, nullptr);
 
     if ( wcsstr(format, TEXT(" begin")) )
     {
-        ++indent;
+        ++console.indent;
     }
 }
 
